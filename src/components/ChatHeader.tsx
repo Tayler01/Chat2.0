@@ -28,12 +28,9 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
           <img 
             src="https://ik.imagekit.io/cryptolord17/ShadowMessage/ChatGPT%20Image%20Jun%2018,%202025,%2009_32_24%20AM.png?updatedAt=1750267859499"
             alt="ShadowMessage Logo"
-            className="hidden sm:block w-6 h-6 rounded-lg shadow-lg object-cover"
+            className="hidden sm:block h-8 w-auto rounded-lg shadow-lg"
             style={{ 
-              objectFit: 'cover',
-              objectPosition: 'center',
-              transform: 'scale(1)',
-              transformOrigin: 'center'
+              objectFit: 'contain'
             }}
           />
           
