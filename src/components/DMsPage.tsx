@@ -52,38 +52,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  useEffect(() => {
-    if (initialConversationId && conversations.length > 0 && !selectedConversation) {
-      const conv = conversations.find(c => c.id === initialConversationId);
-      if (conv) {
-        setSelectedConversation(conv);
-        const lastMsg = conv.messages[conv.messages.length - 1];
-        if (lastMsg && onConversationOpen) {
-          onConversationOpen(conv.id, lastMsg.created_at);
-        }
-      }
-    }
-  }, [initialConversationId, conversations, selectedConversation, onConversationOpen]);
-
-  useEffect(() => {
-    fetchCurrentUserData();
-    fetchUsers();
-    fetchConversations();
-
-    setupRealtimeSubscription();
-
-    return () => {
-      cleanupConnections();
-    };
-  }, [
-    selectedConversation?.id,
-    fetchCurrentUserData,
-    fetchUsers,
-    fetchConversations,
-    setupRealtimeSubscription,
-    cleanupConnections
-  ]);
-
   const cleanupConnections = useCallback(() => {
     if (channelRef.current) {
       channelRef.current.unsubscribe();
@@ -112,7 +80,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                 return [updatedConversation, ...prev];
               }
             });
-            
+
             // Update selected conversation if it's the same one
             if (selectedConversation?.id === updatedConversation.id) {
               setSelectedConversation(updatedConversation);
@@ -124,20 +92,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
     channelRef.current = channel;
   }, [cleanupConnections, selectedConversation?.id]);
-
-  useEffect(() => {
-    scrollToBottom();
-    if (selectedConversation && onConversationOpen) {
-      const lm = selectedConversation.messages[selectedConversation.messages.length - 1];
-      if (lm) {
-        onConversationOpen(selectedConversation.id, lm.created_at);
-      }
-    }
-  }, [selectedConversation?.messages, selectedConversation, onConversationOpen]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   const fetchCurrentUserData = useCallback(async () => {
     try {
@@ -172,7 +126,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const { data, error } = await supabase
         .from('dms')
         .select('*')
@@ -187,6 +141,52 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       setLoading(false);
     }
   }, [currentUser.id]);
+
+  useEffect(() => {
+    if (initialConversationId && conversations.length > 0 && !selectedConversation) {
+      const conv = conversations.find(c => c.id === initialConversationId);
+      if (conv) {
+        setSelectedConversation(conv);
+        const lastMsg = conv.messages[conv.messages.length - 1];
+        if (lastMsg && onConversationOpen) {
+          onConversationOpen(conv.id, lastMsg.created_at);
+        }
+      }
+    }
+  }, [initialConversationId, conversations, selectedConversation, onConversationOpen]);
+
+  useEffect(() => {
+    fetchCurrentUserData();
+    fetchUsers();
+    fetchConversations();
+
+    setupRealtimeSubscription();
+
+    return () => {
+      cleanupConnections();
+    };
+  }, [
+    selectedConversation?.id,
+    fetchCurrentUserData,
+    fetchUsers,
+    fetchConversations,
+    setupRealtimeSubscription,
+    cleanupConnections
+  ]);
+
+  useEffect(() => {
+    scrollToBottom();
+    if (selectedConversation && onConversationOpen) {
+      const lm = selectedConversation.messages[selectedConversation.messages.length - 1];
+      if (lm) {
+        onConversationOpen(selectedConversation.id, lm.created_at);
+      }
+    }
+  }, [selectedConversation?.messages, selectedConversation, onConversationOpen]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const startConversation = async (user: User) => {
     try {
