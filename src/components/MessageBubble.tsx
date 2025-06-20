@@ -136,7 +136,7 @@ export function MessageBubble({ message, isOwnMessage, onUserClick, currentUserI
           {/* Existing reactions */}
           {Object.keys(reactions).length > 0 && (
             <div className={`flex flex-wrap gap-1 mt-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-              {Object.entries(reactions).map(([emoji, users]) => {
+              {Object.entries(reactions).map(([emoji]) => {
                 const count = getReactionCount(emoji);
                 const userReacted = hasUserReacted(emoji);
                 const reactionUsers = getReactionUsers(emoji);
