@@ -79,7 +79,7 @@ export function useDMNotifications(userId: string | null) {
 
     const lastRead = getLastRead();
 
-    const handlePayload = (payload: any) => {
+    const handlePayload = (payload: { new: DMConversation }) => {
       const conversation = payload.new as DMConversation;
       const lastMessage = conversation.messages[conversation.messages.length - 1];
       if (!lastMessage || lastMessage.sender_id === userId) return;

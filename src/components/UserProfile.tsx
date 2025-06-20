@@ -14,7 +14,16 @@ interface UserProfileProps {
     avatar_color: string;
   };
   onClose: () => void;
-  onUserUpdate: (updatedUser: any) => void;
+  onUserUpdate: (updatedUser: {
+    id: string;
+    email?: string;
+    username: string;
+    avatar_color: string;
+    avatar_url?: string;
+    banner_url?: string;
+    bio?: string;
+    created_at?: string;
+  }) => void;
   currentPage: PageType;
   onPageChange: (page: PageType) => void;
 }
