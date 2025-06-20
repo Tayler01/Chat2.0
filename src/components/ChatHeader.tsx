@@ -9,9 +9,10 @@ interface ChatHeaderProps {
   onShowProfile: () => void;
   currentPage: PageType;
   onPageChange: (page: PageType) => void;
+  hasUnreadDMs?: boolean;
 }
 
-export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, onPageChange }: ChatHeaderProps) {
+export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, onPageChange, hasUnreadDMs }: ChatHeaderProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
 
@@ -52,7 +53,7 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
             
             <button
               onClick={() => onPageChange('dms')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+              className={`relative flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
                 currentPage === 'dms'
                   ? 'bg-gray-600 text-white shadow-lg'
                   : 'text-gray-300 hover:text-white hover:bg-gray-700'
@@ -60,6 +61,9 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
               title="Direct Messages"
             >
               <MessageCircle className="w-5 h-5" />
+              {hasUnreadDMs && currentPage !== 'dms' && (
+                <span className="absolute -top-1 -right-1 block w-2 h-2 bg-red-500 rounded-full" />
+              )}
               <span className="text-sm font-medium">DMs</span>
             </button>
           </div>
@@ -67,9 +71,12 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
           {/* Mobile Navigation Toggle */}
           <button
             onClick={() => setShowMobileNav(!showMobileNav)}
-            className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors ml-2"
+            className="relative md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors ml-2"
           >
             {showMobileNav ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {hasUnreadDMs && currentPage !== 'dms' && !showMobileNav && (
+              <span className="absolute -top-1 -right-1 block w-2 h-2 bg-red-500 rounded-full" />
+            )}
           </button>
         </div>
         
@@ -150,7 +157,12 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
                   : 'text-gray-300 hover:text-white hover:bg-gray-700'
               }`}
             >
-              <MessageCircle className="w-5 h-5" />
+              <div className="relative">
+                <MessageCircle className="w-5 h-5" />
+                {hasUnreadDMs && currentPage !== 'dms' && (
+                  <span className="absolute -top-1 -right-1 block w-2 h-2 bg-red-500 rounded-full" />
+                )}
+              </div>
               <span className="font-medium">Direct Messages</span>
             </button>
             
