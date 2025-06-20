@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import type { AuthUser } from '../hooks/useAuth';
 
 interface AuthFormProps {
-  onAuthSuccess: (user: any) => void;
+  onAuthSuccess: (user: AuthUser) => void;
 }
 
 export function AuthForm({ onAuthSuccess }: AuthFormProps) {
