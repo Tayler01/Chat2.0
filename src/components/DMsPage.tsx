@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -53,22 +53,29 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
     fetchCurrentUserData();
     fetchUsers();
     fetchConversations();
-    
+
     setupRealtimeSubscription();
 
     return () => {
       cleanupConnections();
     };
-  }, [selectedConversation?.id]);
+  }, [
+    selectedConversation?.id,
+    fetchCurrentUserData,
+    fetchUsers,
+    fetchConversations,
+    setupRealtimeSubscription,
+    cleanupConnections
+  ]);
 
-  const cleanupConnections = () => {
+  const cleanupConnections = useCallback(() => {
     if (channelRef.current) {
       channelRef.current.unsubscribe();
       channelRef.current = null;
     }
-  };
+  }, []);
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useCallback(() => {
     cleanupConnections();
 
     const channel = supabase
@@ -100,7 +107,7 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
       .subscribe();
 
     channelRef.current = channel;
-  };
+  }, [cleanupConnections, selectedConversation?.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -110,7 +117,7 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchCurrentUserData = async () => {
+  const fetchCurrentUserData = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('users')
@@ -123,9 +130,9 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
     } catch (err) {
       console.error('Error fetching current user data:', err);
     }
-  };
+  }, [currentUser.id]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('users')
@@ -138,9 +145,9 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
     } catch (err) {
       console.error('Error fetching users:', err);
     }
-  };
+  }, [currentUser.id]);
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -157,7 +164,7 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser.id]);
 
   const startConversation = async (user: User) => {
     try {
@@ -232,14 +239,6 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
     };
   };
 
-  const filteredUsers = users.filter(user =>
-    user.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredConversations = conversations.filter(conv => {
-    const otherUser = getOtherUser(conv);
-    return otherUser.username.toLowerCase().includes(searchQuery.toLowerCase());
-  });
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { 
