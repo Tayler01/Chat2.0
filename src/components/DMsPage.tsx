@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -54,6 +54,40 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isUserScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const getConversationWithUser = useCallback(
+    (userId: string) =>
+      conversations.find(
+        (c) =>
+          (c.user1_id === currentUser.id && c.user2_id === userId) ||
+          (c.user2_id === currentUser.id && c.user1_id === userId)
+      ) || null,
+    [conversations, currentUser.id]
+  );
+
+  const sortedConversations = useMemo(() => {
+    return [...conversations].sort((a, b) => {
+      const aUnread = unreadConversations.includes(a.id);
+      const bUnread = unreadConversations.includes(b.id);
+      if (aUnread && !bUnread) return -1;
+      if (!aUnread && bUnread) return 1;
+      return (
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+    });
+  }, [conversations, unreadConversations]);
+
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => {
+      const convA = getConversationWithUser(a.id);
+      const convB = getConversationWithUser(b.id);
+      const aUnread = convA ? unreadConversations.includes(convA.id) : false;
+      const bUnread = convB ? unreadConversations.includes(convB.id) : false;
+      if (aUnread && !bUnread) return -1;
+      if (!aUnread && bUnread) return 1;
+      return a.username.localeCompare(b.username);
+    });
+  }, [users, unreadConversations, getConversationWithUser]);
 
   const cleanupConnections = useCallback(() => {
     if (channelRef.current) {
@@ -165,9 +199,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       const conv = conversations.find(c => c.id === initialConversationId);
       if (conv) {
         setSelectedConversation(conv);
-        const lastMsg = conv.messages[conv.messages.length - 1];
-        if (lastMsg && onConversationOpen) {
-          onConversationOpen(conv.id, lastMsg.created_at);
+        if (onConversationOpen) {
+          onConversationOpen(conv.id, conv.updated_at);
         }
       }
     }
@@ -199,10 +232,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     }
     
     if (selectedConversation && onConversationOpen) {
-      const lm = selectedConversation.messages[selectedConversation.messages.length - 1];
-      if (lm) {
-        onConversationOpen(selectedConversation.id, lm.created_at);
-      }
+      onConversationOpen(selectedConversation.id, selectedConversation.updated_at);
     }
   }, [selectedConversation?.messages, selectedConversation, onConversationOpen]);
 
@@ -248,10 +278,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
       setSelectedConversation(conversation);
       if (onConversationOpen) {
-        const lastMsg = conversation.messages[conversation.messages.length - 1];
-        if (lastMsg) {
-          onConversationOpen(conversation.id, lastMsg.created_at);
-        }
+        onConversationOpen(conversation.id, conversation.updated_at);
       }
       
       // Add to conversations if not already there
@@ -374,11 +401,11 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                 {/* Recent Conversations Tab */}
                 {activeTab === 'recent' && (
                   <div className="p-3">
-                    {conversations.filter(conv => {
+                    {sortedConversations.filter(conv => {
                       const otherUser = getOtherUser(conv);
                       return otherUser.username.toLowerCase().includes(searchQuery.toLowerCase());
                     }).length > 0 ? (
-                      conversations.filter(conv => {
+                      sortedConversations.filter(conv => {
                         const otherUser = getOtherUser(conv);
                         return otherUser.username.toLowerCase().includes(searchQuery.toLowerCase());
                       }).map(conversation => {
@@ -391,8 +418,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                             onClick={() => {
                               setSelectedConversation(conversation);
                               if (onConversationOpen) {
-                                const lm = conversation.messages[conversation.messages.length - 1];
-                                if (lm) onConversationOpen(conversation.id, lm.created_at);
+                                onConversationOpen(conversation.id, conversation.updated_at);
                               }
                             }}
                             className={`w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30 ${
@@ -449,10 +475,10 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                 {/* All Users Tab */}
                 {activeTab === 'all' && (
                   <div className="p-3">
-                    {users.filter(user =>
+                    {sortedUsers.filter(user =>
                       user.username.toLowerCase().includes(searchQuery.toLowerCase())
                     ).length > 0 ? (
-                      users.filter(user =>
+                      sortedUsers.filter(user =>
                         user.username.toLowerCase().includes(searchQuery.toLowerCase())
                       ).map(user => (
                         <button
@@ -480,7 +506,15 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-white font-medium truncate">{user.username}</p>
+                              <p className="text-white font-medium truncate flex items-center gap-1">
+                                {user.username}
+                                {(() => {
+                                  const conv = getConversationWithUser(user.id);
+                                  return conv && unreadConversations.includes(conv.id) ? (
+                                    <span className="w-2 h-2 bg-red-500 rounded-full" />
+                                  ) : null;
+                                })()}
+                              </p>
                             </div>
                           </div>
                         </button>
