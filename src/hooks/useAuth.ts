@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   email: string;
   username: string;
