@@ -37,6 +37,8 @@ export function MessageBubble({ message, isOwnMessage, onUserClick, currentUserI
       setShowPicker(false);
     } catch (error) {
       console.error('Error toggling reaction:', error);
+      // Show user-friendly error message
+      alert('Failed to add reaction. Please try again.');
     } finally {
       setIsReacting(false);
     }

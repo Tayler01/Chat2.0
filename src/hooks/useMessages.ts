@@ -34,6 +34,21 @@ export function useMessages(userId: string | null) {
           );
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        (payload) => {
+          const updatedMessage = payload.new as Message;
+          
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === updatedMessage.id
+                ? { ...msg, reactions: updatedMessage.reactions }
+                : msg
+            )
+          );
+        }
+      )
       .subscribe();
 
     channelRef.current = channel;

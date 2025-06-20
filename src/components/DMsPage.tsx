@@ -111,6 +111,13 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const updatedConversation = payload.new as DMConversation;
+            
+            // Check if this conversation involves the current user
+            const isUserInvolved = updatedConversation.user1_id === currentUser.id || 
+                                 updatedConversation.user2_id === currentUser.id;
+            
+            if (!isUserInvolved) return;
+            
             setConversations(prev => {
               const existingIndex = prev.findIndex(conv => conv.id === updatedConversation.id);
               if (existingIndex >= 0) {
@@ -132,7 +139,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       .subscribe();
 
     channelRef.current = channel;
-  }, [cleanupConnections, selectedConversation?.id]);
+  }, [cleanupConnections, selectedConversation?.id, currentUser.id]);
 
   // Handle scroll detection to prevent auto-scroll when user is manually scrolling
   const handleScroll = useCallback(() => {
@@ -326,6 +333,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       setShowReactionPicker(null);
     } catch (error) {
       console.error('Error toggling DM reaction:', error);
+      // Show user-friendly error message
+      alert('Failed to add reaction. Please try again.');
     } finally {
       setIsReacting(false);
     }
