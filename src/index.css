@@ -31,6 +31,14 @@
   scrollbar-color: #6B7280 #374151;
 }
 
+/* Line clamp utility for notification text */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 @media screen and (max-width: 768px) {
   input[type="text"],
   input[type="email"],
