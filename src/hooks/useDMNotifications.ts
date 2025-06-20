@@ -33,6 +33,42 @@ export function useDMNotifications(userId: string | null) {
     if (!userId) return;
 
     const storageKey = `dm_last_read_${userId}`;
+    let lastRead: Record<string, string> = {};
+    try {
+      lastRead = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    } catch {
+      lastRead = {};
+    }
+
+    const fetchUnread = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('dms')
+          .select('id, updated_at')
+          .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+
+        if (error) throw error;
+
+        const unread = new Set<string>();
+        (data || []).forEach((conv) => {
+          const readAt = lastRead[conv.id];
+          if (!readAt || new Date(conv.updated_at) > new Date(readAt)) {
+            unread.add(conv.id);
+          }
+        });
+        setUnreadIds(unread);
+      } catch (err) {
+        console.error('Error fetching unread conversations:', err);
+      }
+    };
+
+    fetchUnread();
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const storageKey = `dm_last_read_${userId}`;
     const getLastRead = (): Record<string, string> => {
       try {
         return JSON.parse(localStorage.getItem(storageKey) || '{}');
