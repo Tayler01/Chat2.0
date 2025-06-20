@@ -104,8 +104,6 @@ function App() {
             if (currentPage !== 'dms') {
               setCurrentPage('dms');
             }
-              setCurrentPage('dms');
-            }
           }}
         />
         <DMsPage
