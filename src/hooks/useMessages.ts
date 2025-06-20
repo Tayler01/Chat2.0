@@ -14,10 +14,10 @@ export function useMessages(userId: string | null) {
   const oldestTimestampRef = useRef<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  useEffect(() => {
+  const subscribeToMessages = () => {
     if (!userId) return;
 
-    fetchLatestMessages();
+    channelRef.current?.unsubscribe();
 
     const channel = supabase
       .channel('messages')
@@ -37,9 +37,40 @@ export function useMessages(userId: string | null) {
       .subscribe();
 
     channelRef.current = channel;
+  };
+
+  useEffect(() => {
+    if (!userId) return;
+
+    fetchLatestMessages();
+    subscribeToMessages();
 
     return () => {
-      channel.unsubscribe();
+      channelRef.current?.unsubscribe();
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        subscribeToMessages();
+        fetchLatestMessages();
+      }
+    };
+
+    const handleFocus = () => {
+      subscribeToMessages();
+      fetchLatestMessages();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleFocus);
     };
   }, [userId]);
 
