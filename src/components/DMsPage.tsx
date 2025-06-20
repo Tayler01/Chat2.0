@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
+import { Smile } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface User {
@@ -15,6 +16,7 @@ interface DMMessage {
   sender_id: string;
   content: string;
   created_at: string;
+  reactions?: Record<string, string[]>;
 }
 
 interface DMConversation {
@@ -54,6 +56,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isUserScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
+  const [isReacting, setIsReacting] = useState(false);
 
   const getConversationWithUser = useCallback(
     (userId: string) =>
@@ -306,6 +310,37 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     } catch (err) {
       console.error('Error sending message:', err);
     }
+  };
+
+  const handleDMReaction = async (messageId: string, emoji: string) => {
+    if (!selectedConversation || !currentUser.id || isReacting) return;
+
+    setIsReacting(true);
+    try {
+      await supabase.rpc('toggle_dm_reaction', {
+        conversation_id: selectedConversation.id,
+        message_id: messageId,
+        user_id: currentUser.id,
+        emoji: emoji
+      });
+      setShowReactionPicker(null);
+    } catch (error) {
+      console.error('Error toggling DM reaction:', error);
+    } finally {
+      setIsReacting(false);
+    }
+  };
+
+  const getReactionCount = (reactions: Record<string, string[]> | undefined, emoji: string) => {
+    if (!reactions) return 0;
+    const users = reactions[emoji] || [];
+    return Array.isArray(users) ? users.length : 0;
+  };
+
+  const hasUserReacted = (reactions: Record<string, string[]> | undefined, emoji: string) => {
+    if (!reactions) return false;
+    const users = reactions[emoji] || [];
+    return Array.isArray(users) && users.includes(currentUser.id);
   };
 
   const getOtherUser = (conversation: DMConversation) => {
@@ -606,7 +641,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                   </div>
                 ) : (
                   selectedConversation.messages.map(message => (
-                    <div
+                    <div 
                       key={message.id}
                       className={`flex gap-3 ${
                         message.sender_id === currentUser.id ? 'flex-row-reverse' : ''
@@ -653,16 +688,76 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                         })()}
                       </button>
                       
-                      <div className={`flex flex-col max-w-xs sm:max-w-md ${
+                      <div className={`flex flex-col max-w-xs sm:max-w-md relative ${
                         message.sender_id === currentUser.id ? 'items-end' : 'items-start'
                       }`}>
-                        <div className={`px-4 py-2 rounded-2xl ${
-                          message.sender_id === currentUser.id
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-br-md shadow-lg border border-blue-500/20'
-                            : 'bg-gray-700 text-gray-100 rounded-bl-md shadow-lg border border-gray-600/50'
-                        }`}>
-                          <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                        <div className="relative">
+                          <div className={`px-4 py-2 rounded-2xl group ${
+                            message.sender_id === currentUser.id
+                              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-br-md shadow-lg border border-blue-500/20'
+                              : 'bg-gray-700 text-gray-100 rounded-bl-md shadow-lg border border-gray-600/50'
+                          }`}>
+                            <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                            
+                            {/* Reaction button */}
+                            <button
+                              onClick={() => setShowReactionPicker(showReactionPicker === message.id ? null : message.id)}
+                              className={`absolute -bottom-2 ${message.sender_id === currentUser.id ? 'left-2' : 'right-2'} opacity-0 group-hover:opacity-100 transition-opacity bg-gray-600 hover:bg-gray-500 rounded-full p-1 shadow-lg`}
+                              title="Add reaction"
+                            >
+                              <Smile className="w-3 h-3 text-gray-200" />
+                            </button>
+                          </div>
+
+                          {/* Reaction picker */}
+                          {showReactionPicker === message.id && (
+                            <div
+                              className={`absolute z-20 mt-1 ${message.sender_id === currentUser.id ? 'right-0' : 'left-0'} bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 flex gap-1 shadow-xl`}
+                            >
+                              {['❤️', '👍', '😂', '😮', '😢', '😡'].map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  onClick={() => handleDMReaction(message.id, emoji)}
+                                  disabled={isReacting}
+                                  className="hover:scale-110 transition-transform p-1 hover:bg-gray-700 rounded disabled:opacity-50"
+                                  title={`React with ${emoji}`}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Existing reactions */}
+                          {message.reactions && Object.keys(message.reactions).length > 0 && (
+                            <div className={`flex flex-wrap gap-1 mt-1 ${message.sender_id === currentUser.id ? 'justify-end' : 'justify-start'}`}>
+                              {Object.entries(message.reactions).map(([emoji, users]) => {
+                                const count = getReactionCount(message.reactions, emoji);
+                                const userReacted = hasUserReacted(message.reactions, emoji);
+                                
+                                if (count === 0) return null;
+                                
+                                return (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => handleDMReaction(message.id, emoji)}
+                                    disabled={isReacting}
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all hover:scale-105 disabled:opacity-50 ${
+                                      userReacted
+                                        ? 'bg-blue-600 text-white border border-blue-500'
+                                        : 'bg-gray-600 text-gray-200 border border-gray-500 hover:bg-gray-500'
+                                    }`}
+                                    title={`${users.length} reaction${users.length !== 1 ? 's' : ''}`}
+                                  >
+                                    <span>{emoji}</span>
+                                    <span className="font-medium">{count}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
+                        
                         <span className="text-xs text-gray-400 mt-1">
                           {formatTime(message.created_at)}
                         </span>
@@ -672,6 +767,14 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                 )}
                 <div ref={messagesEndRef} />
               </div>
+
+              {/* Click outside to close reaction picker */}
+              {showReactionPicker && (
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setShowReactionPicker(null)}
+                />
+              )}
 
               {/* Message Input */}
               <div className="p-3 sm:p-4 border-t border-gray-600/50 bg-gray-800/50 safe-area-inset-bottom">

@@ -62,6 +62,7 @@ export interface Database {
           avatar_color: string;
           created_at: string | null;
           avatar_url: string | null;
+          reactions: Record<string, string[]> | null;
         };
         Insert: {
           id?: string;
@@ -71,6 +72,7 @@ export interface Database {
           avatar_color?: string;
           created_at?: string | null;
           avatar_url?: string | null;
+          reactions?: Record<string, string[]> | null;
         };
         Update: {
           id?: string;
@@ -80,6 +82,7 @@ export interface Database {
           avatar_color?: string;
           created_at?: string | null;
           avatar_url?: string | null;
+          reactions?: Record<string, string[]> | null;
         };
       };
       subscriptions: {

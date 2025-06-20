@@ -80,7 +80,7 @@ export function useMessages(userId: string | null) {
 
       const { data, error } = await supabase
         .from('messages')
-        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at')
+        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at, reactions')
         .order('created_at', { ascending: false })
         .limit(PAGE_SIZE);
 
@@ -109,7 +109,7 @@ export function useMessages(userId: string | null) {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at')
+        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at, reactions')
         .lt('created_at', oldestTimestampRef.current)
         .order('created_at', { ascending: false })
         .limit(PAGE_SIZE);
