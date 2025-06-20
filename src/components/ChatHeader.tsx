@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, User, UserCircle, Users, MessageCircle, Menu, X } from 'lucide-react';
+import { LogOut, UserCircle, Users, MessageCircle, Menu, X } from 'lucide-react';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
