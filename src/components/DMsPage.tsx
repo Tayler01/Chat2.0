@@ -177,16 +177,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   useEffect(() => {
     if (selectedConversation) {
       scrollToBottom();
-      
-      // Only mark as read if this conversation has unread messages
-      if (onConversationOpen && unreadConversations.includes(selectedConversation.id)) {
-        const lastMsg = selectedConversation.messages[selectedConversation.messages.length - 1];
-        if (lastMsg) {
-          onConversationOpen(selectedConversation.id, lastMsg.created_at);
-        }
-      }
     }
-  }, [selectedConversation?.messages, selectedConversation, onConversationOpen, unreadConversations]);
+  }, [selectedConversation?.messages, selectedConversation]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -358,7 +350,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                             onClick={() => {
                               setSelectedConversation(conversation);
                               // Mark as read when conversation is opened
-                              if (onConversationOpen && unreadConversations.includes(conversation.id)) {
+                              if (onConversationOpen) {
                                 const lastMsg = conversation.messages[conversation.messages.length - 1];
                                 if (lastMsg) {
                                   onConversationOpen(conversation.id, lastMsg.created_at);
