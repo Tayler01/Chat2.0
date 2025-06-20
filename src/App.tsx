@@ -6,8 +6,10 @@ import { MessageInput } from './components/MessageInput';
 import { UserProfile } from './components/UserProfile';
 import { ProfilePreviewModal } from './components/ProfilePreviewModal';
 import { DMsPage } from './components/DMsPage';
+import { DMNotification } from './components/DMNotification';
 import { useMessages } from './hooks/useMessages';
 import { useAuth } from './hooks/useAuth';
+import { useDMNotifications } from './hooks/useDMNotifications';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { supabase } from './lib/supabase';
 
@@ -17,6 +19,14 @@ function App() {
   const { user, loading: authLoading, signOut, updateUser } = useAuth();
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<PageType>('group-chat');
+  const [openConversationId, setOpenConversationId] = useState<string | null>(null);
+
+  const {
+    unreadConversations,
+    hasUnread,
+    preview: dmPreview,
+    markAsRead,
+  } = useDMNotifications(user?.id ?? null);
 
   // Only call useMessages if user is authenticated
   const {
@@ -79,14 +89,31 @@ function App() {
   if (currentPage === 'dms') {
     return (
       <div className="flex flex-col h-screen bg-gray-900">
-        <ChatHeader 
+        <ChatHeader
           userName={user.username}
           onClearUser={signOut}
           onShowProfile={() => setCurrentPage('profile')}
           currentPage={currentPage}
           onPageChange={setCurrentPage}
+          hasUnreadDMs={hasUnread}
         />
-        <DMsPage currentUser={user} onUserClick={handleUserClick} />
+        <DMNotification
+          preview={dmPreview}
+          onJump={(id) => {
+            setOpenConversationId(id);
+            // already on DMs page
+          }}
+        />
+        <DMsPage
+          currentUser={user}
+          onUserClick={handleUserClick}
+          unreadConversations={unreadConversations}
+          onConversationOpen={(id, ts) => {
+            markAsRead(id, ts);
+            setOpenConversationId(null);
+          }}
+          initialConversationId={openConversationId}
+        />
         {previewUserId && (
           <ProfilePreviewModal
             userId={previewUserId}
@@ -99,12 +126,20 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-900">
-      <ChatHeader 
+      <ChatHeader
         userName={user.username}
         onClearUser={signOut}
         onShowProfile={() => setCurrentPage('profile')}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
+        hasUnreadDMs={hasUnread}
+      />
+      <DMNotification
+        preview={dmPreview}
+        onJump={(id) => {
+          setOpenConversationId(id);
+          setCurrentPage('dms');
+        }}
       />
 
       <ChatArea

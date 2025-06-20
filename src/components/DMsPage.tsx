@@ -35,9 +35,12 @@ interface DMsPageProps {
     avatar_url?: string;
   };
   onUserClick?: (userId: string) => void;
+  unreadConversations?: string[];
+  onConversationOpen?: (id: string, lastTimestamp: string) => void;
+  initialConversationId?: string | null;
 }
 
-export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
+export function DMsPage({ currentUser, onUserClick, unreadConversations = [], onConversationOpen, initialConversationId }: DMsPageProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<DMConversation | null>(null);
@@ -48,6 +51,19 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
   const [currentUserData, setCurrentUserData] = useState<User | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  useEffect(() => {
+    if (initialConversationId && conversations.length > 0 && !selectedConversation) {
+      const conv = conversations.find(c => c.id === initialConversationId);
+      if (conv) {
+        setSelectedConversation(conv);
+        const lastMsg = conv.messages[conv.messages.length - 1];
+        if (lastMsg && onConversationOpen) {
+          onConversationOpen(conv.id, lastMsg.created_at);
+        }
+      }
+    }
+  }, [initialConversationId, conversations, selectedConversation, onConversationOpen]);
 
   useEffect(() => {
     fetchCurrentUserData();
@@ -111,7 +127,13 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [selectedConversation?.messages]);
+    if (selectedConversation && onConversationOpen) {
+      const lm = selectedConversation.messages[selectedConversation.messages.length - 1];
+      if (lm) {
+        onConversationOpen(selectedConversation.id, lm.created_at);
+      }
+    }
+  }, [selectedConversation?.messages, selectedConversation, onConversationOpen]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -188,6 +210,12 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
       if (fetchError) throw fetchError;
 
       setSelectedConversation(conversation);
+      if (onConversationOpen) {
+        const lastMsg = conversation.messages[conversation.messages.length - 1];
+        if (lastMsg) {
+          onConversationOpen(conversation.id, lastMsg.created_at);
+        }
+      }
       
       // Add to conversations if not already there
       setConversations(prev => {
@@ -325,6 +353,10 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                             key={conversation.id}
                             onClick={() => {
                               setSelectedConversation(conversation);
+                              if (onConversationOpen) {
+                                const lm = conversation.messages[conversation.messages.length - 1];
+                                if (lm) onConversationOpen(conversation.id, lm.created_at);
+                              }
                             }}
                             className={`w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30 ${
                               selectedConversation?.id === conversation.id ? 'bg-gray-700/60 border-emerald-500/30' : ''
@@ -348,8 +380,11 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-white font-medium truncate">
+                                <p className="text-white font-medium truncate flex items-center gap-1">
                                   {otherUserData.username}
+                                  {unreadConversations.includes(conversation.id) && (
+                                    <span className="w-2 h-2 bg-red-500 rounded-full" />
+                                  )}
                                 </p>
                                 {lastMessage && (
                                   <p className="text-sm text-gray-400 truncate">
