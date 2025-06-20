@@ -175,14 +175,18 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   ]);
 
   useEffect(() => {
-    scrollToBottom();
-    if (selectedConversation && onConversationOpen) {
-      const lm = selectedConversation.messages[selectedConversation.messages.length - 1];
-      if (lm) {
-        onConversationOpen(selectedConversation.id, lm.created_at);
+    if (selectedConversation) {
+      scrollToBottom();
+      
+      // Only mark as read if this conversation has unread messages
+      if (onConversationOpen && unreadConversations.includes(selectedConversation.id)) {
+        const lastMsg = selectedConversation.messages[selectedConversation.messages.length - 1];
+        if (lastMsg) {
+          onConversationOpen(selectedConversation.id, lastMsg.created_at);
+        }
       }
     }
-  }, [selectedConversation?.messages, selectedConversation, onConversationOpen]);
+  }, [selectedConversation?.messages, selectedConversation, onConversationOpen, unreadConversations]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -353,9 +357,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                             key={conversation.id}
                             onClick={() => {
                               setSelectedConversation(conversation);
-                              if (onConversationOpen) {
-                                const lm = conversation.messages[conversation.messages.length - 1];
-                                if (lm) onConversationOpen(conversation.id, lm.created_at);
+                              // Mark as read when conversation is opened
+                              if (onConversationOpen && unreadConversations.includes(conversation.id)) {
+                                const lastMsg = conversation.messages[conversation.messages.length - 1];
+                                if (lastMsg) {
+                                  onConversationOpen(conversation.id, lastMsg.created_at);
+                                }
                               }
                             }}
                             className={`w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30 ${

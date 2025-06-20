@@ -108,10 +108,7 @@ function App() {
           currentUser={user}
           onUserClick={handleUserClick}
           unreadConversations={unreadConversations}
-          onConversationOpen={(id, ts) => {
-            markAsRead(id, ts);
-            setOpenConversationId(null);
-          }}
+          onConversationOpen={markAsRead}
           initialConversationId={openConversationId}
         />
         {previewUserId && (
