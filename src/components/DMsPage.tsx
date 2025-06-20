@@ -383,7 +383,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                                 <p className="text-white font-medium truncate flex items-center gap-1">
                                   {otherUserData.username}
                                   {unreadConversations.includes(conversation.id) && (
-                                    <span className="w-2 h-2 bg-red-500 rounded-full" />
+                                    <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-1" />
                                   )}
                                 </p>
                                 {lastMessage && (
@@ -392,6 +392,9 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                                   </p>
                                 )}
                               </div>
+                              {unreadConversations.includes(conversation.id) && (
+                                <div className="flex-shrink-0 w-2 h-2 bg-red-500 rounded-full" />
+                              )}
                             </div>
                           </button>
                         );
