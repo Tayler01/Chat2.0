@@ -56,6 +56,10 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isUserScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoadingMoreRef = useRef(false);
+  const hasAutoScrolledRef = useRef(false);
+  const DM_PAGE_SIZE = 20;
+  const [messageLimit, setMessageLimit] = useState(DM_PAGE_SIZE);
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
   const [isReacting, setIsReacting] = useState(false);
 
@@ -92,6 +96,13 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       return a.username.localeCompare(b.username);
     });
   }, [users, unreadConversations, getConversationWithUser]);
+
+  const displayedMessages = useMemo(() => {
+    if (!selectedConversation) return [] as DMMessage[];
+    const msgs = selectedConversation.messages || [];
+    const start = Math.max(0, msgs.length - messageLimit);
+    return msgs.slice(start);
+  }, [selectedConversation, messageLimit]);
 
   const cleanupConnections = useCallback(() => {
     if (channelRef.current) {
@@ -143,18 +154,39 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   // Handle scroll detection to prevent auto-scroll when user is manually scrolling
   const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !selectedConversation) return;
+
     isUserScrollingRef.current = true;
-    
-    // Clear existing timeout
+
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
-    
-    // Reset scroll flag after user stops scrolling
+
     scrollTimeoutRef.current = setTimeout(() => {
       isUserScrollingRef.current = false;
     }, 1000);
-  }, []);
+
+    if (
+      container.scrollTop === 0 &&
+      messageLimit < selectedConversation.messages.length &&
+      !isLoadingMoreRef.current
+    ) {
+      const previousHeight = container.scrollHeight;
+      isLoadingMoreRef.current = true;
+      setMessageLimit((limit) =>
+        Math.min(limit + DM_PAGE_SIZE, selectedConversation.messages.length)
+      );
+
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          const newHeight = container.scrollHeight;
+          container.scrollTop = newHeight - previousHeight;
+          isLoadingMoreRef.current = false;
+        });
+      }, 100);
+    }
+  }, [messageLimit, selectedConversation]);
 
   const fetchCurrentUserData = useCallback(async () => {
     try {
@@ -210,6 +242,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       const conv = conversations.find(c => c.id === initialConversationId);
       if (conv) {
         setSelectedConversation(conv);
+        setMessageLimit(Math.min(DM_PAGE_SIZE, conv.messages.length));
+        hasAutoScrolledRef.current = false;
         if (onConversationOpen) {
           onConversationOpen(conv.id, conv.updated_at);
         }
@@ -237,15 +271,33 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   ]);
 
   useEffect(() => {
-    // Only auto-scroll if user is not manually scrolling
-    if (!isUserScrollingRef.current) {
-      scrollToBottom();
+    if (!selectedConversation) return;
+    setMessageLimit((limit) =>
+      Math.min(
+        Math.max(limit, DM_PAGE_SIZE),
+        selectedConversation.messages.length
+      )
+    );
+  }, [selectedConversation?.messages.length]);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !selectedConversation) return;
+
+    const isNearBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+
+    if (!hasAutoScrolledRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      hasAutoScrolledRef.current = true;
+    } else if (isNearBottom && !isUserScrollingRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-    
-    if (selectedConversation && onConversationOpen) {
+
+    if (onConversationOpen) {
       onConversationOpen(selectedConversation.id, selectedConversation.updated_at);
     }
-  }, [selectedConversation?.messages, selectedConversation, onConversationOpen]);
+  }, [selectedConversation?.messages, messageLimit, selectedConversation, onConversationOpen]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -260,11 +312,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     };
   }, [handleScroll]);
 
-  const scrollToBottom = () => {
-    if (!isUserScrollingRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
 
   const startConversation = async (user: User) => {
     try {
@@ -288,6 +335,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       if (fetchError) throw fetchError;
 
       setSelectedConversation(conversation);
+      setMessageLimit(Math.min(DM_PAGE_SIZE, conversation.messages.length));
+      hasAutoScrolledRef.current = false;
       if (onConversationOpen) {
         onConversationOpen(conversation.id, conversation.updated_at);
       }
@@ -461,6 +510,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                             key={conversation.id}
                             onClick={() => {
                               setSelectedConversation(conversation);
+                              setMessageLimit(Math.min(DM_PAGE_SIZE, conversation.messages.length));
+                              hasAutoScrolledRef.current = false;
                               if (onConversationOpen) {
                                 onConversationOpen(conversation.id, conversation.updated_at);
                               }
@@ -638,7 +689,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                 ref={messagesContainerRef}
                 className="flex-1 overflow-y-auto p-4 space-y-4"
               >
-                {selectedConversation.messages.length === 0 ? (
+                {displayedMessages.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-center">
                     <div>
                       <MessageSquare className="w-12 h-12 text-gray-500 mx-auto mb-4" />
@@ -649,7 +700,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                     </div>
                   </div>
                 ) : (
-                  selectedConversation.messages.map(message => (
+                  displayedMessages.map(message => (
                     <div 
                       key={message.id}
                       className={`flex gap-3 ${
