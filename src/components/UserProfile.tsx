@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Palette, Save, Upload, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ChatHeader } from './ChatHeader';
+import { avatarColors } from '../utils/avatarColors';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -18,11 +19,6 @@ interface UserProfileProps {
   onPageChange: (page: PageType) => void;
 }
 
-const avatarColors = [
-  '#EF4444', '#F97316', '#F59E0B', '#84CC16', 
-  '#22C55E', '#06B6D4', '#3B82F6', '#6366F1', 
-  '#8B5CF6', '#EC4899', '#F43F5E', '#64748B'
-];
 
 export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageChange }: UserProfileProps) {
   const [profileData, setProfileData] = useState({

@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'lucide-react';
 import { User as UserType } from '../types/message';
+import { avatarColors } from '../utils/avatarColors';
 
 interface UserSetupProps {
   onUserSet: (user: UserType) => void;
 }
-
-const avatarColors = [
-  '#EF4444', '#F97316', '#F59E0B', '#84CC16', 
-  '#22C55E', '#06B6D4', '#3B82F6', '#6366F1', 
-  '#8B5CF6', '#EC4899', '#F43F5E', '#64748B'
-];
 
 const getRandomColor = () => {
   return avatarColors[Math.floor(Math.random() * avatarColors.length)];
