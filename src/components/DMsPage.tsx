@@ -175,10 +175,14 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   ]);
 
   useEffect(() => {
-    if (selectedConversation) {
-      scrollToBottom();
+    scrollToBottom();
+    if (selectedConversation && onConversationOpen) {
+      const lm = selectedConversation.messages[selectedConversation.messages.length - 1];
+      if (lm) {
+        onConversationOpen(selectedConversation.id, lm.created_at);
+      }
     }
-  }, [selectedConversation?.messages, selectedConversation]);
+  }, [selectedConversation?.messages, selectedConversation, onConversationOpen]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -349,12 +353,9 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                             key={conversation.id}
                             onClick={() => {
                               setSelectedConversation(conversation);
-                              // Mark as read when conversation is opened
                               if (onConversationOpen) {
-                                const lastMsg = conversation.messages[conversation.messages.length - 1];
-                                if (lastMsg) {
-                                  onConversationOpen(conversation.id, lastMsg.created_at);
-                                }
+                                const lm = conversation.messages[conversation.messages.length - 1];
+                                if (lm) onConversationOpen(conversation.id, lm.created_at);
                               }
                             }}
                             className={`w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30 ${

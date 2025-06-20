@@ -101,20 +101,16 @@ function App() {
           preview={dmPreview}
           onJump={(id) => {
             setOpenConversationId(id);
-            if (currentPage !== 'dms') {
-              setCurrentPage('dms');
-            }
+            // already on DMs page
           }}
         />
         <DMsPage
           currentUser={user}
           onUserClick={handleUserClick}
           unreadConversations={unreadConversations}
-          onConversationOpen={(conversationId, timestamp) => {
-            // Only mark as read if this conversation actually has unread messages
-            if (unreadConversations.includes(conversationId)) {
-              markAsRead(conversationId, timestamp);
-            }
+          onConversationOpen={(id, ts) => {
+            markAsRead(id, ts);
+            setOpenConversationId(null);
           }}
           initialConversationId={openConversationId}
         />
