@@ -22,7 +22,7 @@ export function UserSetup({ onUserSet }: UserSetupProps) {
         const user = JSON.parse(savedUser);
         setName(user.name || '');
         setIsReturningUser(true);
-      } catch (error) {
+      } catch {
         localStorage.removeItem('chatUser');
       }
     }
@@ -38,7 +38,7 @@ export function UserSetup({ onUserSet }: UserSetupProps) {
         try {
           const existingUser = JSON.parse(savedUser);
           avatarColor = existingUser.avatar_color || getRandomColor();
-        } catch (error) {
+        } catch {
           avatarColor = getRandomColor();
         }
       }
