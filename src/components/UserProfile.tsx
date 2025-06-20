@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Palette, Save, Upload } from 'lucide-react';
+import { X, User, Mail, Palette, Save, Upload, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ChatHeader } from './ChatHeader';
 
@@ -224,15 +224,25 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 relative">
       {/* Same header as main page */}
-      <ChatHeader 
+      <ChatHeader
         userName={user.username}
-        onClearUser={() => {}} // Empty function since we don't want to sign out from profile  
+        onClearUser={() => {}} // Empty function since we don't want to sign out from profile
         onShowProfile={() => {}} // Empty function since we're already on profile
         currentPage={currentPage}
         onPageChange={onPageChange} // Allow navigation to other pages
       />
+
+      {/* Back button */}
+      <div className="absolute top-4 left-4 z-10">
+        <button
+          onClick={onClose}
+          className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+      </div>
 
       {/* Main content with grid layout */}
       <div className="h-[calc(100vh-5rem)] overflow-hidden">
