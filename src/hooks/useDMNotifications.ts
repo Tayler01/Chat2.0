@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+
+// Duration the notification stays visible in milliseconds
+const DISPLAY_DURATION = 4000;
+// Extra time to allow the hide animation in DMNotification to finish
+const HIDE_ANIMATION_MS = 300;
 import { supabase } from '../lib/supabase';
 
 interface DMMessage {
@@ -95,7 +100,10 @@ export function useDMNotifications(userId: string | null) {
               : conversation.user1_username,
           content: lastMessage.content,
         });
-        setTimeout(() => setPreview(null), 2000);
+        setTimeout(
+          () => setPreview(null),
+          DISPLAY_DURATION + HIDE_ANIMATION_MS
+        );
       }
     };
 
