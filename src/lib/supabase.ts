@@ -95,8 +95,6 @@ export interface Database {
           messages: Record<string, unknown>[] | null;
           created_at: string | null;
           updated_at: string | null;
-          user1_last_read: string | null;
-          user2_last_read: string | null;
         };
         Insert: {
           id?: string;
@@ -107,8 +105,6 @@ export interface Database {
           messages?: Record<string, unknown>[] | null;
           created_at?: string | null;
           updated_at?: string | null;
-          user1_last_read?: string | null;
-          user2_last_read?: string | null;
         };
         Update: {
           id?: string;
@@ -119,25 +115,6 @@ export interface Database {
           messages?: Record<string, unknown>[] | null;
           created_at?: string | null;
           updated_at?: string | null;
-          user1_last_read?: string | null;
-          user2_last_read?: string | null;
-        };
-      };
-      message_reads: {
-        Row: {
-          message_id: string;
-          user_id: string;
-          read_at: string | null;
-        };
-        Insert: {
-          message_id: string;
-          user_id: string;
-          read_at?: string | null;
-        };
-        Update: {
-          message_id?: string;
-          user_id?: string;
-          read_at?: string | null;
         };
       };
     };

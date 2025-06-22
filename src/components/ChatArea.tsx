@@ -15,9 +15,6 @@ interface ChatAreaProps {
   fetchOlderMessages: () => void;
   hasMore: boolean;
   onUserClick?: (userId: string) => void;
-  onSeen?: () => void;
-  seenBy?: number;
-  seenUsers?: { username: string; avatar_url: string | null }[];
 }
 
 export function ChatArea({
@@ -29,9 +26,7 @@ export function ChatArea({
   fetchOlderMessages,
   hasMore,
   onUserClick,
-  onSeen,
-  seenBy,
-  seenUsers,
+  
 }: ChatAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -52,7 +47,6 @@ export function ChatArea({
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
 
-    onSeen?.();
   }, [messages]);
 
   const handleScroll = useCallback(() => {
@@ -152,14 +146,7 @@ export function ChatArea({
         })()}
         <div ref={messagesEndRef} />
       </div>
-      {seenUsers && seenUsers.length > 0 ? (
-        <div className="px-4 py-1 text-xs text-gray-400 flex flex-wrap gap-1">
-          <span>Seen by</span>
-          <span>{seenUsers.map((u) => u.username).join(', ')}</span>
-        </div>
-      ) : typeof seenBy === 'number' && seenBy > 0 ? (
-        <div className="px-4 py-1 text-xs text-gray-400">Seen by {seenBy}</div>
-      ) : null}
+      
     </>
   );
 }

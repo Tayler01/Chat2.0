@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { AuthForm } from './components/AuthForm';
 import { ChatHeader } from './components/ChatHeader';
 import { ChatArea } from './components/ChatArea';
@@ -36,26 +36,7 @@ function App() {
     sendMessage,
     fetchOlderMessages,
     hasMore,
-    markLastRead,
-    getSeenCount,
-    getSeenUsers,
   } = useMessages(user?.id ?? null);
-
-  const [seenCount, setSeenCount] = useState(0);
-  const [seenUsers, setSeenUsers] = useState<{ username: string; avatar_url: string | null }[]>([]);
-
-  const updateSeen = useCallback(async () => {
-    if (messages.length === 0) return;
-    await markLastRead();
-    const count = await getSeenCount(messages[messages.length - 1].id);
-    const users = await getSeenUsers(messages[messages.length - 1].id);
-    setSeenCount(Math.max(0, count - 1));
-    setSeenUsers(users.filter(u => u.username !== user?.username));
-  }, [messages, markLastRead, getSeenCount, getSeenUsers, user?.username]);
-
-  useEffect(() => {
-    updateSeen();
-  }, [updateSeen]);
 
   // Show loading spinner while checking auth
   if (authLoading) {
@@ -127,8 +108,8 @@ function App() {
           currentUser={user}
           onUserClick={handleUserClick}
           unreadConversations={unreadConversations}
-          onConversationOpen={(id, ts, lastId) => {
-            markAsRead(id, ts, lastId);
+          onConversationOpen={(id, ts) => {
+            markAsRead(id, ts);
             setOpenConversationId(null);
           }}
           initialConversationId={openConversationId}
@@ -170,9 +151,6 @@ function App() {
         fetchOlderMessages={fetchOlderMessages}
         hasMore={hasMore}
         onUserClick={handleUserClick}
-        onSeen={updateSeen}
-        seenBy={seenCount}
-        seenUsers={seenUsers}
       />
 
       <MessageInput 

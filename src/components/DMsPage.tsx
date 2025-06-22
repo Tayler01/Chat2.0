@@ -48,8 +48,7 @@ interface DMsPageProps {
   unreadConversations?: string[];
   onConversationOpen?: (
     id: string,
-    lastTimestamp: string,
-    lastMessageId: string
+    lastTimestamp: string
   ) => void;
   initialConversationId?: string | null;
 }
@@ -258,8 +257,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         setMessageLimit(Math.min(DM_PAGE_SIZE, normalized.messages.length));
         hasAutoScrolledRef.current = false;
         if (onConversationOpen) {
-          const lastMsg = normalized.messages[normalized.messages.length - 1];
-          onConversationOpen(normalized.id, normalized.updated_at, lastMsg?.id || '');
+          onConversationOpen(normalized.id, normalized.updated_at);
         }
       }
     }
@@ -309,14 +307,9 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     }
 
     if (onConversationOpen && selectedConversation.messages.length > 0) {
-      const lastMsg =
-        selectedConversation.messages[
-          selectedConversation.messages.length - 1
-        ] as DMMessage;
       onConversationOpen(
         selectedConversation.id,
-        selectedConversation.updated_at,
-        lastMsg.id
+        selectedConversation.updated_at
       );
     }
   }, [selectedConversation?.messages, messageLimit, selectedConversation, onConversationOpen]);
@@ -361,8 +354,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       setMessageLimit(Math.min(DM_PAGE_SIZE, normalized.messages.length));
       hasAutoScrolledRef.current = false;
       if (onConversationOpen) {
-        const lastMsg = normalized.messages[normalized.messages.length - 1];
-        onConversationOpen(normalized.id, normalized.updated_at, lastMsg?.id || '');
+        onConversationOpen(normalized.id, normalized.updated_at);
       }
       
       // Add to conversations if not already there
@@ -456,15 +448,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     });
   };
 
-  const lastSeen = (() => {
-    if (!selectedConversation) return false;
-    const lastMsg = selectedConversation.messages[selectedConversation.messages.length - 1];
-    if (!lastMsg) return false;
-    if (currentUser.id === selectedConversation.user1_id) {
-      return selectedConversation.user2_last_read === lastMsg.id;
-    }
-    return selectedConversation.user1_last_read === lastMsg.id;
-  })();
 
   return (
     <div className="h-[calc(100vh-5rem)] overflow-hidden bg-gray-900">
@@ -549,8 +532,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                               if (onConversationOpen) {
                                 onConversationOpen(
                                   conversation.id,
-                                  conversation.updated_at,
-                                  lastMessage?.id || ''
+                                  conversation.updated_at
                                 );
                               }
                             }}
@@ -864,9 +846,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                   ))
                 )}
                 <div ref={messagesEndRef} />
-                {lastSeen && (
-                  <div className="px-3 py-1 text-xs text-gray-400">Seen</div>
-                )}
               </div>
 
               {/* Click outside to close reaction picker */}
