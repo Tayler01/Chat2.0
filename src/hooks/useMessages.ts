@@ -203,7 +203,7 @@ export function useMessages(userId: string | null) {
       .from('message_reads')
       .select(`
         user_id,
-        users!message_reads_user_id_fkey(username, avatar_url)
+        users(username, avatar_url)
       `)
       .eq('message_id', messageId);
 
