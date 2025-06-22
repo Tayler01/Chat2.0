@@ -173,50 +173,6 @@ export function useMessages(userId: string | null) {
     }
   };
 
-  const markLastRead = async () => {
-    if (!userId || messages.length === 0) return;
-    const last = messages[messages.length - 1];
-    try {
-      await supabase.rpc('upsert_message_read', {
-        p_message_id: last.id,
-        p_user_id: userId,
-      });
-    } catch (err) {
-      console.error('Error updating read receipt:', err);
-    }
-  };
-
-  const getSeenCount = async (messageId: string) => {
-    const { data, error } = await supabase
-      .from('message_reads')
-      .select('user_id', { count: 'exact', head: true })
-      .eq('message_id', messageId);
-    if (error) {
-      console.error('Error fetching read receipts:', error);
-      return 0;
-    }
-    return data?.count ?? 0;
-  };
-
-  const getSeenUsers = async (messageId: string) => {
-    const { data, error } = await supabase
-      .from('message_reads')
-      .select('users(username, avatar_url)')
-      .eq('message_id', messageId);
-
-    if (error) {
-      console.error('Error fetching users who read message:', error);
-      return [] as { username: string; avatar_url: string | null }[];
-    }
-
-    return (
-      (data as { users: { username: string; avatar_url: string | null } }[] | null)
-        ?.map((row) => ({
-          username: row.users.username,
-          avatar_url: row.users.avatar_url,
-        })) ?? []
-    );
-  };
 
   return {
     messages,
@@ -225,9 +181,6 @@ export function useMessages(userId: string | null) {
     sendMessage,
     fetchOlderMessages,
     hasMore,
-    markLastRead,
-    getSeenCount,
-    getSeenUsers,
   };
 }
 

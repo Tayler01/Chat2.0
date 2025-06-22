@@ -21,6 +21,4 @@ supabase db push       # apply new migrations
 supabase db reset      # recreate the database with all migrations
 ```
 
-If the migrations are not applied, RPC functions such as `upsert_message_read` will respond with a `404` error when called.
-
 The latest migrations remove the unused `subscriptions` table that previously stored push-notification data.

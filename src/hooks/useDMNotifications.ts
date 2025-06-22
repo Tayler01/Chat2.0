@@ -113,8 +113,7 @@ export function useDMNotifications(userId: string | null) {
 
   const markAsRead = (
     conversationId: string,
-    timestamp: string,
-    lastMessageId: string | null
+    timestamp: string
   ) => {
     if (!userId) return;
     setUnreadIds((prev) => {
@@ -131,20 +130,6 @@ export function useDMNotifications(userId: string | null) {
     }
     data[conversationId] = timestamp;
     localStorage.setItem(storageKey, JSON.stringify(data));
-
-    if (lastMessageId) {
-      supabase
-        .rpc('update_dm_read', {
-          p_conversation_id: conversationId,
-          p_user_id: userId,
-          p_message_id: lastMessageId,
-        })
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error updating DM read:', error);
-          }
-        });
-    }
   };
 
   return {
