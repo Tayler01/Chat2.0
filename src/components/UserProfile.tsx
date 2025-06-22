@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Palette, Save, Upload, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ChatHeader } from './ChatHeader';
@@ -55,7 +55,11 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
 
-  const fetchUserProfile = useCallback(async () => {
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -83,11 +87,7 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
     } finally {
       setLoading(false);
     }
-  }, [user.id, user.username, user.avatar_color]);
-
-  useEffect(() => {
-    fetchUserProfile();
-  }, [fetchUserProfile]);
+  };
 
   const handleSave = async () => {
     if (!editData.username.trim()) {

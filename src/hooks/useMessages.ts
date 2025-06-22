@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Message } from '../types/message';
 
@@ -14,7 +14,7 @@ export function useMessages(userId: string | null) {
   const oldestTimestampRef = useRef<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const subscribeToMessages = useCallback(() => {
+  const subscribeToMessages = () => {
     if (!userId) return;
 
     channelRef.current?.unsubscribe();
@@ -52,7 +52,7 @@ export function useMessages(userId: string | null) {
       .subscribe();
 
     channelRef.current = channel;
-  }, [userId]);
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -63,7 +63,7 @@ export function useMessages(userId: string | null) {
     return () => {
       channelRef.current?.unsubscribe();
     };
-  }, [userId, fetchLatestMessages, subscribeToMessages]);
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -87,9 +87,9 @@ export function useMessages(userId: string | null) {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [userId, fetchLatestMessages, subscribeToMessages]);
+  }, [userId]);
 
-  const fetchLatestMessages = useCallback(async () => {
+  const fetchLatestMessages = async () => {
     try {
       setLoading(true);
 
@@ -114,7 +114,7 @@ export function useMessages(userId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   const fetchOlderMessages = async () => {
     if (loadingOlder || !oldestTimestampRef.current || !hasMore) return;
@@ -201,13 +201,7 @@ export function useMessages(userId: string | null) {
   const getSeenUsers = async (messageId: string) => {
     const { data, error } = await supabase
       .from('message_reads')
-      .select(`
-        user_id,
-        users!message_reads_user_id_fkey (
-          username,
-          avatar_url
-        )
-      `)
+      .select('users(username, avatar_url)')
       .eq('message_id', messageId);
 
     if (error) {
@@ -216,11 +210,10 @@ export function useMessages(userId: string | null) {
     }
 
     return (
-      (data as { users: { username: string; avatar_url: string | null } | null }[] | null)
-        ?.filter((row) => row.users !== null)
+      (data as { users: { username: string; avatar_url: string | null } }[] | null)
         ?.map((row) => ({
-          username: row.users!.username,
-          avatar_url: row.users!.avatar_url,
+          username: row.users.username,
+          avatar_url: row.users.avatar_url,
         })) ?? []
     );
   };

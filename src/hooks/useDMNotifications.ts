@@ -1,9 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-
-// Duration the notification stays visible in milliseconds
-const DISPLAY_DURATION = 4000;
-// Extra time to allow the hide animation in DMNotification to finish
-const HIDE_ANIMATION_MS = 300;
 import { supabase } from '../lib/supabase';
 
 interface DMMessage {
@@ -100,10 +95,7 @@ export function useDMNotifications(userId: string | null) {
               : conversation.user1_username,
           content: lastMessage.content,
         });
-        setTimeout(
-          () => setPreview(null),
-          DISPLAY_DURATION + HIDE_ANIMATION_MS
-        );
+        setTimeout(() => setPreview(null), 2000);
       }
     };
 
@@ -120,7 +112,7 @@ export function useDMNotifications(userId: string | null) {
     };
   }, [userId]);
 
-  const markAsRead = async (
+  const markAsRead = (
     conversationId: string,
     timestamp: string,
     lastMessageId: string | null
@@ -142,15 +134,11 @@ export function useDMNotifications(userId: string | null) {
     localStorage.setItem(storageKey, JSON.stringify(data));
 
     if (lastMessageId) {
-      try {
-        await supabase.rpc('update_dm_read', {
-          p_conversation_id: conversationId,
-          p_user_id: userId,
-          p_message_id: lastMessageId,
-        });
-      } catch (err) {
-        console.error('Error updating DM read:', err);
-      }
+      supabase.rpc('update_dm_read', {
+        p_conversation_id: conversationId,
+        p_user_id: userId,
+        p_message_id: lastMessageId,
+      }).catch((err) => console.error('Error updating DM read:', err));
     }
   };
 
