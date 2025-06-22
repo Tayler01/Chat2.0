@@ -292,7 +292,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         selectedConversation.messages.length
       )
     );
-  }, [selectedConversation]);
+  }, [selectedConversation?.messages.length]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -378,21 +378,17 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   const sendMessage = async () => {
     if (!selectedConversation || !newMessage.trim()) return;
-    const messageText = newMessage.trim();
-    setNewMessage(''); // Clear input immediately for better UX
 
     try {
       await supabase.rpc('append_dm_message', {
         conversation_id: selectedConversation.id,
         sender_id: currentUser.id,
-        message_text: messageText
+        message_text: newMessage.trim()
       });
+
+      setNewMessage('');
     } catch (err) {
       console.error('Error sending message:', err);
-      // Restore message on error so user can retry
-      setNewMessage(messageText);
-      // Show user-friendly error message
-      alert('Failed to send message. Please try again.');
     }
   };
 

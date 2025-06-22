@@ -11,12 +11,6 @@ VITE_SUPABASE_URL=<your Supabase project URL>
 VITE_SUPABASE_ANON_KEY=<your Supabase anon key>
 ```
 
-After setting the variables you can verify connectivity with:
-
-```bash
-npm run check:supabase
-```
-
 ## Database migrations
 
 This repository stores migrations under `supabase/migrations/`. Apply them to your local Supabase instance with the Supabase CLI:
@@ -30,12 +24,3 @@ supabase db reset      # recreate the database with all migrations
 If the migrations are not applied, RPC functions such as `upsert_message_read` will respond with a `404` error when called.
 
 The latest migrations remove the unused `subscriptions` table that previously stored push-notification data.
-
-## Development
-
-Install dependencies before building or linting:
-
-```bash
-npm install
-npm run build # or npm run lint
-```

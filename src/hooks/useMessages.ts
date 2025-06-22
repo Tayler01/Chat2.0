@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Message } from '../types/message';
 
@@ -14,7 +14,7 @@ export function useMessages(userId: string | null) {
   const oldestTimestampRef = useRef<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const subscribeToMessages = useCallback(() => {
+  const subscribeToMessages = () => {
     if (!userId) return;
 
     channelRef.current?.unsubscribe();
@@ -52,7 +52,7 @@ export function useMessages(userId: string | null) {
       .subscribe();
 
     channelRef.current = channel;
-  }, [userId]);
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -63,7 +63,7 @@ export function useMessages(userId: string | null) {
     return () => {
       channelRef.current?.unsubscribe();
     };
-  }, [userId, subscribeToMessages]);
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -87,7 +87,7 @@ export function useMessages(userId: string | null) {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [userId, subscribeToMessages]);
+  }, [userId]);
 
   const fetchLatestMessages = async () => {
     try {
@@ -199,37 +199,21 @@ export function useMessages(userId: string | null) {
   };
 
   const getSeenUsers = async (messageId: string) => {
-    // Check if Supabase is properly configured
-    if (!supabase.supabaseUrl || !supabase.supabaseKey) {
-      console.error('Supabase is not properly configured');
-      return [];
-    }
-
-    let data: { users: { username: string; avatar_url: string | null } | null }[] | null = null;
-
-    try {
-      const result = await supabase
-        .from('message_reads')
-        .select(`
+    const { data, error } = await supabase
+      .from('message_reads')
+      .select(`
         user_id,
         users(username, avatar_url)
       `)
-        .eq('message_id', messageId);
+      .eq('message_id', messageId);
 
-      data = result.data;
-
-      if (result.error) {
-        console.error('Error fetching users who read message:', result.error);
-        return [];
-      }
-    } catch (networkError) {
-      console.error('Network error fetching users who read message:', networkError);
-      console.error('Please check your Supabase configuration and network connection');
+    if (error) {
+      console.error('Error fetching users who read message:', error);
       return [] as { username: string; avatar_url: string | null }[];
     }
 
     return (
-      data
+      (data as { users: { username: string; avatar_url: string | null } | null }[] | null)
         ?.filter((row) => row.users !== null)
         ?.map((row) => ({
           username: row.users!.username,
