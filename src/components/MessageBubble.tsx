@@ -176,10 +176,12 @@ export function MessageBubble({
             isOwnMessage ? 'flex-row-reverse' : ''
           }`}
         >
-          <span className="font-medium text-xs">{message.user_name}</span>
-          {showTimestamp && <span>•</span>}
           {showTimestamp && (
-            <span className="text-xs">{formatTime(message.created_at)}</span>
+            <>
+              <span className="font-medium text-xs">{message.user_name}</span>
+              <span>•</span>
+              <span className="text-xs">{formatTime(message.created_at)}</span>
+            </>
           )}
         </div>
       </div>
