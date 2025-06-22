@@ -201,10 +201,7 @@ export function useMessages(userId: string | null) {
   const getSeenUsers = async (messageId: string) => {
     const { data, error } = await supabase
       .from('message_reads')
-      .select(`
-        user_id,
-        users(username, avatar_url)
-      `)
+      .select('users(username, avatar_url)')
       .eq('message_id', messageId);
 
     if (error) {
@@ -213,11 +210,10 @@ export function useMessages(userId: string | null) {
     }
 
     return (
-      (data as { users: { username: string; avatar_url: string | null } | null }[] | null)
-        ?.filter((row) => row.users !== null)
+      (data as { users: { username: string; avatar_url: string | null } }[] | null)
         ?.map((row) => ({
-          username: row.users!.username,
-          avatar_url: row.users!.avatar_url,
+          username: row.users.username,
+          avatar_url: row.users.avatar_url,
         })) ?? []
     );
   };
