@@ -38,16 +38,20 @@ function App() {
     hasMore,
     markLastRead,
     getSeenCount,
+    getSeenUsers,
   } = useMessages(user?.id ?? null);
 
   const [seenCount, setSeenCount] = useState(0);
+  const [seenUsers, setSeenUsers] = useState<{ username: string; avatar_url: string | null }[]>([]);
 
   const updateSeen = useCallback(async () => {
     if (messages.length === 0) return;
     await markLastRead();
     const count = await getSeenCount(messages[messages.length - 1].id);
+    const users = await getSeenUsers(messages[messages.length - 1].id);
     setSeenCount(Math.max(0, count - 1));
-  }, [messages, markLastRead, getSeenCount]);
+    setSeenUsers(users.filter(u => u.username !== user?.username));
+  }, [messages, markLastRead, getSeenCount, getSeenUsers, user?.username]);
 
   useEffect(() => {
     updateSeen();
@@ -168,6 +172,7 @@ function App() {
         onUserClick={handleUserClick}
         onSeen={updateSeen}
         seenBy={seenCount}
+        seenUsers={seenUsers}
       />
 
       <MessageInput 

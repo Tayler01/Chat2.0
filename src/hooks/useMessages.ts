@@ -198,6 +198,26 @@ export function useMessages(userId: string | null) {
     return data?.count ?? 0;
   };
 
+  const getSeenUsers = async (messageId: string) => {
+    const { data, error } = await supabase
+      .from('message_reads')
+      .select('users(username, avatar_url)')
+      .eq('message_id', messageId);
+
+    if (error) {
+      console.error('Error fetching users who read message:', error);
+      return [] as { username: string; avatar_url: string | null }[];
+    }
+
+    return (
+      (data as { users: { username: string; avatar_url: string | null } }[] | null)
+        ?.map((row) => ({
+          username: row.users.username,
+          avatar_url: row.users.avatar_url,
+        })) ?? []
+    );
+  };
+
   return {
     messages,
     loading,
@@ -207,6 +227,7 @@ export function useMessages(userId: string | null) {
     hasMore,
     markLastRead,
     getSeenCount,
+    getSeenUsers,
   };
 }
 

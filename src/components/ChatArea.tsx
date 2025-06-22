@@ -17,6 +17,7 @@ interface ChatAreaProps {
   onUserClick?: (userId: string) => void;
   onSeen?: () => void;
   seenBy?: number;
+  seenUsers?: { username: string; avatar_url: string | null }[];
 }
 
 export function ChatArea({
@@ -30,6 +31,7 @@ export function ChatArea({
   onUserClick,
   onSeen,
   seenBy,
+  seenUsers,
 }: ChatAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -150,9 +152,14 @@ export function ChatArea({
         })()}
         <div ref={messagesEndRef} />
       </div>
-      {typeof seenBy === 'number' && seenBy > 0 && (
+      {seenUsers && seenUsers.length > 0 ? (
+        <div className="px-4 py-1 text-xs text-gray-400 flex flex-wrap gap-1">
+          <span>Seen by</span>
+          <span>{seenUsers.map((u) => u.username).join(', ')}</span>
+        </div>
+      ) : typeof seenBy === 'number' && seenBy > 0 ? (
         <div className="px-4 py-1 text-xs text-gray-400">Seen by {seenBy}</div>
-      )}
+      ) : null}
     </>
   );
 }
