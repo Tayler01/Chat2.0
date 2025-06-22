@@ -22,3 +22,7 @@ supabase db reset      # recreate the database with all migrations
 ```
 
 If the migrations are not applied, RPC functions such as `upsert_message_read` will respond with a `404` error when called.
+
+## Message retention
+
+The Supabase migrations include a trigger named `prune_old_messages` that runs after each insert into the `messages` table. When more than 100 rows exist, it removes the oldest entries so only the newest 100 remain. Remember to run `supabase db push` to apply this behavior.
