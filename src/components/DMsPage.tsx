@@ -29,6 +29,14 @@ interface DMConversation {
   updated_at: string;
 }
 
+const normalizeConversation = (conv: unknown): DMConversation => {
+  const c = conv as Partial<DMConversation>;
+  return {
+    ...(c as DMConversation),
+    messages: Array.isArray(c?.messages) ? (c.messages as DMMessage[]) : []
+  };
+};
+
 interface DMsPageProps {
   currentUser: {
     id: string;
@@ -125,7 +133,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         { event: '*', schema: 'public', table: 'dms' },
         (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const updatedConversation = payload.new as DMConversation;
+            const updatedConversation = normalizeConversation(payload.new);
             
             // Check if this conversation involves the current user
             const isUserInvolved = updatedConversation.user1_id === currentUser.id || 
@@ -233,7 +241,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      setConversations(data || []);
+      setConversations((data || []).map(normalizeConversation));
     } catch (err) {
       console.error('Error fetching conversations:', err);
     } finally {
@@ -245,12 +253,13 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     if (initialConversationId && conversations.length > 0 && !selectedConversation) {
       const conv = conversations.find(c => c.id === initialConversationId);
       if (conv) {
-        setSelectedConversation(conv);
-        setMessageLimit(Math.min(DM_PAGE_SIZE, conv.messages.length));
+        const normalized = normalizeConversation(conv);
+        setSelectedConversation(normalized);
+        setMessageLimit(Math.min(DM_PAGE_SIZE, normalized.messages.length));
         hasAutoScrolledRef.current = false;
         if (onConversationOpen) {
-          const lastMsg = conv.messages[conv.messages.length - 1];
-          onConversationOpen(conv.id, conv.updated_at, lastMsg?.id || '');
+          const lastMsg = normalized.messages[normalized.messages.length - 1];
+          onConversationOpen(normalized.id, normalized.updated_at, lastMsg?.id || '');
         }
       }
     }
@@ -347,19 +356,20 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
       if (fetchError) throw fetchError;
 
-      setSelectedConversation(conversation);
-      setMessageLimit(Math.min(DM_PAGE_SIZE, conversation.messages.length));
+      const normalized = normalizeConversation(conversation);
+      setSelectedConversation(normalized);
+      setMessageLimit(Math.min(DM_PAGE_SIZE, normalized.messages.length));
       hasAutoScrolledRef.current = false;
       if (onConversationOpen) {
-        const lastMsg = conversation.messages[conversation.messages.length - 1];
-        onConversationOpen(conversation.id, conversation.updated_at, lastMsg?.id || '');
+        const lastMsg = normalized.messages[normalized.messages.length - 1];
+        onConversationOpen(normalized.id, normalized.updated_at, lastMsg?.id || '');
       }
       
       // Add to conversations if not already there
       setConversations(prev => {
-        const exists = prev.find(conv => conv.id === conversation.id);
+        const exists = prev.find(conv => conv.id === normalized.id);
         if (exists) return prev;
-        return [conversation, ...prev];
+        return [normalized, ...prev];
       });
     } catch (err) {
       console.error('Error starting conversation:', err);
