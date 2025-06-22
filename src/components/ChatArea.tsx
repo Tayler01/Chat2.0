@@ -53,7 +53,8 @@ export function ChatArea({
   const container = containerRef.current;
   if (!container || !hasMore || isFetchingRef.current) return;
 
-  if (container.scrollTop === 0) {
+  // Allow a small threshold to improve touch scrolling experience
+  if (container.scrollTop <= 20) {
     const previousHeight = container.scrollHeight;
     isFetchingRef.current = true;
 
