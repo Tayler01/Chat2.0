@@ -292,7 +292,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         selectedConversation.messages.length
       )
     );
-  }, [selectedConversation?.messages.length]);
+  }, [selectedConversation]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
