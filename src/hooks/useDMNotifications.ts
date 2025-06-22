@@ -112,7 +112,7 @@ export function useDMNotifications(userId: string | null) {
     };
   }, [userId]);
 
-  const markAsRead = (
+  const markAsRead = async (
     conversationId: string,
     timestamp: string,
     lastMessageId: string | null
@@ -134,11 +134,15 @@ export function useDMNotifications(userId: string | null) {
     localStorage.setItem(storageKey, JSON.stringify(data));
 
     if (lastMessageId) {
-      supabase.rpc('update_dm_read', {
-        p_conversation_id: conversationId,
-        p_user_id: userId,
-        p_message_id: lastMessageId,
-      }).catch((err) => console.error('Error updating DM read:', err));
+      try {
+        await supabase.rpc('update_dm_read', {
+          p_conversation_id: conversationId,
+          p_user_id: userId,
+          p_message_id: lastMessageId,
+        });
+      } catch (err) {
+        console.error('Error updating DM read:', err);
+      }
     }
   };
 
