@@ -43,6 +43,31 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, [hasCheckedSession]);
 
+  useEffect(() => {
+    const refreshSession = async () => {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+      if (session?.user) {
+        await fetchUserProfile(session.user);
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshSession();
+      }
+    };
+
+    window.addEventListener('focus', refreshSession);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('focus', refreshSession);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
   const fetchUserProfile = async (authUser: User) => {
     try {
       const { data: profile } = await supabase
