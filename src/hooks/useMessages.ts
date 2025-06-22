@@ -199,6 +199,13 @@ export function useMessages(userId: string | null) {
   };
 
   const getSeenUsers = async (messageId: string) => {
+    // Check if Supabase is properly configured
+    if (!supabase.supabaseUrl || !supabase.supabaseKey) {
+      console.error('Supabase is not properly configured');
+      return [];
+    }
+
+    try {
     const { data, error } = await supabase
       .from('message_reads')
       .select(`
@@ -207,8 +214,13 @@ export function useMessages(userId: string | null) {
       `)
       .eq('message_id', messageId);
 
-    if (error) {
-      console.error('Error fetching users who read message:', error);
+      if (error) {
+        console.error('Error fetching users who read message:', error);
+        return [];
+      }
+    } catch (networkError) {
+      console.error('Network error fetching users who read message:', networkError);
+      console.error('Please check your Supabase configuration and network connection');
       return [] as { username: string; avatar_url: string | null }[];
     }
 

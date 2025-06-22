@@ -8,6 +8,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables:');
   console.error('VITE_SUPABASE_URL:', supabaseUrl || 'undefined');
   console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set' : 'undefined');
+  console.error('Please ensure your .env file contains the correct Supabase configuration.');
+  console.error('You can find these values in your Supabase project dashboard under Settings > API');
   throw new Error(`Missing Supabase environment variables. Please check your .env file.
 Required variables:
 - VITE_SUPABASE_URL=${supabaseUrl || 'MISSING'}
