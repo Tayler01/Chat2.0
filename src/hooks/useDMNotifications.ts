@@ -77,13 +77,12 @@ export function useDMNotifications(userId: string | null) {
       }
     };
 
-    const lastRead = getLastRead();
-
     const handlePayload = (payload: { new: DMConversation }) => {
       const conversation = payload.new as DMConversation;
       const lastMessage = conversation.messages[conversation.messages.length - 1];
       if (!lastMessage || lastMessage.sender_id === userId) return;
 
+      const lastRead = getLastRead();
       const readAt = lastRead[conversation.id];
       if (!readAt || new Date(conversation.updated_at) > new Date(readAt)) {
         setUnreadIds((prev) => new Set(prev).add(conversation.id));
