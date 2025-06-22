@@ -53,7 +53,7 @@ export function ChatArea({
     }
 
     onSeen?.();
-  }, [messages]);
+  }, [messages, onSeen]);
 
   const handleScroll = useCallback(() => {
   const container = containerRef.current;

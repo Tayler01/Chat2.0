@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Mail, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -23,11 +23,7 @@ export function ProfilePreviewModal({ userId, onClose }: ProfilePreviewModalProp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchUserProfile();
-  }, [userId]);
-
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -55,7 +51,11 @@ export function ProfilePreviewModal({ userId, onClose }: ProfilePreviewModalProp
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, [userId, fetchUserProfile]);
 
   const formatJoinDate = (dateString: string) => {
     if (!dateString) return 'Unknown';
