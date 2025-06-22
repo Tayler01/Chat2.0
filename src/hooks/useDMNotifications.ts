@@ -94,7 +94,8 @@ export function useDMNotifications(userId: string | null) {
               : conversation.user1_username,
           content: lastMessage.content,
         });
-        setTimeout(() => setPreview(null), 2000);
+        // Keep preview visible for 4 seconds to match the notification display
+        setTimeout(() => setPreview(null), 4000);
       }
     };
 
