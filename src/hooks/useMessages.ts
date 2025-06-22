@@ -205,14 +205,20 @@ export function useMessages(userId: string | null) {
       return [];
     }
 
+    let data: { users: { username: string; avatar_url: string | null } | null }[] | null = null;
+    let error: any = null;
+
     try {
-    const { data, error } = await supabase
+      const result = await supabase
       .from('message_reads')
       .select(`
         user_id,
         users(username, avatar_url)
       `)
       .eq('message_id', messageId);
+
+      data = result.data;
+      error = result.error;
 
       if (error) {
         console.error('Error fetching users who read message:', error);
@@ -225,7 +231,7 @@ export function useMessages(userId: string | null) {
     }
 
     return (
-      (data as { users: { username: string; avatar_url: string | null } | null }[] | null)
+      data
         ?.filter((row) => row.users !== null)
         ?.map((row) => ({
           username: row.users!.username,
