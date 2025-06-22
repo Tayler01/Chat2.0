@@ -85,26 +85,6 @@ export interface Database {
           reactions?: Record<string, string[]> | null;
         };
       };
-      subscriptions: {
-        Row: {
-          id: string;
-          user_id: string | null;
-          subscription: Record<string, unknown>;
-          created_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          user_id?: string | null;
-          subscription: Record<string, unknown>;
-          created_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          user_id?: string | null;
-          subscription?: Record<string, unknown>;
-          created_at?: string | null;
-        };
-      };
       dms: {
         Row: {
           id: string;
