@@ -134,11 +134,17 @@ export function useDMNotifications(userId: string | null) {
     localStorage.setItem(storageKey, JSON.stringify(data));
 
     if (lastMessageId) {
-      supabase.rpc('update_dm_read', {
-        p_conversation_id: conversationId,
-        p_user_id: userId,
-        p_message_id: lastMessageId,
-      }).catch((err) => console.error('Error updating DM read:', err));
+      supabase
+        .rpc('update_dm_read', {
+          p_conversation_id: conversationId,
+          p_user_id: userId,
+          p_message_id: lastMessageId,
+        })
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error updating DM read:', error);
+          }
+        });
     }
   };
 
