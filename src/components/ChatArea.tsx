@@ -107,8 +107,12 @@ export function ChatArea({
         const items: JSX.Element[] = [];
         let lastDateLabel: string | null = null;
 
-        messages.forEach((message) => {
+        messages.forEach((message, index) => {
           const dateLabel = formatDateGroup(message.created_at);
+          const nextMessage = messages[index + 1];
+          const nextDateLabel = nextMessage
+            ? formatDateGroup(nextMessage.created_at)
+            : null;
 
           if (dateLabel !== lastDateLabel) {
             items.push(
@@ -126,6 +130,11 @@ export function ChatArea({
               isOwnMessage={message.user_id === currentUserId}
               currentUserId={currentUserId}
               onUserClick={onUserClick}
+              showTimestamp={
+                !nextMessage ||
+                nextMessage.user_id !== message.user_id ||
+                dateLabel !== nextDateLabel
+              }
             />
           );
         });

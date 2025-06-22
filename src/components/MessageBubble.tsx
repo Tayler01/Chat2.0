@@ -8,9 +8,16 @@ interface MessageBubbleProps {
   isOwnMessage: boolean;
   onUserClick?: (userId: string) => void;
   currentUserId?: string;
+  showTimestamp?: boolean;
 }
 
-export function MessageBubble({ message, isOwnMessage, onUserClick, currentUserId }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  isOwnMessage,
+  onUserClick,
+  currentUserId,
+  showTimestamp = true,
+}: MessageBubbleProps) {
   const [showPicker, setShowPicker] = useState(false);
   const [isReacting, setIsReacting] = useState(false);
 
@@ -164,12 +171,16 @@ export function MessageBubble({ message, isOwnMessage, onUserClick, currentUserI
           )}
         </div>
         
-        <div className={`flex items-center gap-1 sm:gap-2 mt-1 text-xs text-gray-400 ${
-          isOwnMessage ? 'flex-row-reverse' : ''
-        }`}>
+        <div
+          className={`flex items-center gap-1 sm:gap-2 mt-1 text-xs text-gray-400 ${
+            isOwnMessage ? 'flex-row-reverse' : ''
+          }`}
+        >
           <span className="font-medium text-xs">{message.user_name}</span>
-          <span>•</span>
-          <span className="text-xs">{formatTime(message.created_at)}</span>
+          {showTimestamp && <span>•</span>}
+          {showTimestamp && (
+            <span className="text-xs">{formatTime(message.created_at)}</span>
+          )}
         </div>
       </div>
 
