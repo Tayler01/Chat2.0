@@ -11,6 +11,12 @@ VITE_SUPABASE_URL=<your Supabase project URL>
 VITE_SUPABASE_ANON_KEY=<your Supabase anon key>
 ```
 
+After setting the variables you can verify connectivity with:
+
+```bash
+npm run check:supabase
+```
+
 ## Database migrations
 
 This repository stores migrations under `supabase/migrations/`. Apply them to your local Supabase instance with the Supabase CLI:
