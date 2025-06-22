@@ -206,22 +206,20 @@ export function useMessages(userId: string | null) {
     }
 
     let data: { users: { username: string; avatar_url: string | null } | null }[] | null = null;
-    let error: any = null;
 
     try {
       const result = await supabase
-      .from('message_reads')
-      .select(`
+        .from('message_reads')
+        .select(`
         user_id,
         users(username, avatar_url)
       `)
-      .eq('message_id', messageId);
+        .eq('message_id', messageId);
 
       data = result.data;
-      error = result.error;
 
-      if (error) {
-        console.error('Error fetching users who read message:', error);
+      if (result.error) {
+        console.error('Error fetching users who read message:', result.error);
         return [];
       }
     } catch (networkError) {
