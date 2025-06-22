@@ -28,6 +28,7 @@ export function useDMNotifications(userId: string | null) {
   const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<DMPreview | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -81,6 +82,11 @@ export function useDMNotifications(userId: string | null) {
       const conversation = payload.new as DMConversation;
       const lastMessage = conversation.messages[conversation.messages.length - 1];
       if (!lastMessage || lastMessage.sender_id === userId) return;
+
+      if (lastMessageIdRef.current === lastMessage.id) {
+        return; // Ignore duplicate events for the same message
+      }
+      lastMessageIdRef.current = lastMessage.id;
 
       const lastRead = getLastRead();
       const readAt = lastRead[conversation.id];
