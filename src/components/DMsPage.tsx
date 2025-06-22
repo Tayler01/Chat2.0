@@ -38,7 +38,11 @@ interface DMsPageProps {
   };
   onUserClick?: (userId: string) => void;
   unreadConversations?: string[];
-  onConversationOpen?: (id: string, lastTimestamp: string) => void;
+  onConversationOpen?: (
+    id: string,
+    lastTimestamp: string,
+    lastMessageId: string
+  ) => void;
   initialConversationId?: string | null;
 }
 
@@ -245,7 +249,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         setMessageLimit(Math.min(DM_PAGE_SIZE, conv.messages.length));
         hasAutoScrolledRef.current = false;
         if (onConversationOpen) {
-          onConversationOpen(conv.id, conv.updated_at);
+          const lastMsg = conv.messages[conv.messages.length - 1];
+          onConversationOpen(conv.id, conv.updated_at, lastMsg?.id || '');
         }
       }
     }
@@ -294,8 +299,16 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
 
-    if (onConversationOpen) {
-      onConversationOpen(selectedConversation.id, selectedConversation.updated_at);
+    if (onConversationOpen && selectedConversation.messages.length > 0) {
+      const lastMsg =
+        selectedConversation.messages[
+          selectedConversation.messages.length - 1
+        ] as DMMessage;
+      onConversationOpen(
+        selectedConversation.id,
+        selectedConversation.updated_at,
+        lastMsg.id
+      );
     }
   }, [selectedConversation?.messages, messageLimit, selectedConversation, onConversationOpen]);
 
@@ -338,7 +351,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       setMessageLimit(Math.min(DM_PAGE_SIZE, conversation.messages.length));
       hasAutoScrolledRef.current = false;
       if (onConversationOpen) {
-        onConversationOpen(conversation.id, conversation.updated_at);
+        const lastMsg = conversation.messages[conversation.messages.length - 1];
+        onConversationOpen(conversation.id, conversation.updated_at, lastMsg?.id || '');
       }
       
       // Add to conversations if not already there
@@ -426,11 +440,21 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
+
+  const lastSeen = (() => {
+    if (!selectedConversation) return false;
+    const lastMsg = selectedConversation.messages[selectedConversation.messages.length - 1];
+    if (!lastMsg) return false;
+    if (currentUser.id === selectedConversation.user1_id) {
+      return selectedConversation.user2_last_read === lastMsg.id;
+    }
+    return selectedConversation.user1_last_read === lastMsg.id;
+  })();
 
   return (
     <div className="h-[calc(100vh-5rem)] overflow-hidden bg-gray-900">
@@ -513,7 +537,11 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                               setMessageLimit(Math.min(DM_PAGE_SIZE, conversation.messages.length));
                               hasAutoScrolledRef.current = false;
                               if (onConversationOpen) {
-                                onConversationOpen(conversation.id, conversation.updated_at);
+                                onConversationOpen(
+                                  conversation.id,
+                                  conversation.updated_at,
+                                  lastMessage?.id || ''
+                                );
                               }
                             }}
                             className={`w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30 ${
@@ -826,6 +854,9 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                   ))
                 )}
                 <div ref={messagesEndRef} />
+                {lastSeen && (
+                  <div className="px-3 py-1 text-xs text-gray-400">Seen</div>
+                )}
               </div>
 
               {/* Click outside to close reaction picker */}

@@ -15,6 +15,8 @@ interface ChatAreaProps {
   fetchOlderMessages: () => void;
   hasMore: boolean;
   onUserClick?: (userId: string) => void;
+  onSeen?: () => void;
+  seenBy?: number;
 }
 
 export function ChatArea({
@@ -26,6 +28,8 @@ export function ChatArea({
   fetchOlderMessages,
   hasMore,
   onUserClick,
+  onSeen,
+  seenBy,
 }: ChatAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -45,6 +49,8 @@ export function ChatArea({
     } else if (isNearBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
+
+    onSeen?.();
   }, [messages]);
 
   const handleScroll = useCallback(() => {
@@ -99,13 +105,14 @@ export function ChatArea({
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
-    >
-      {(() => {
-        const items: JSX.Element[] = [];
-        let lastDateLabel: string | null = null;
+    <>
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
+      >
+        {(() => {
+          const items: JSX.Element[] = [];
+          let lastDateLabel: string | null = null;
 
         messages.forEach((message, index) => {
           const dateLabel = formatDateGroup(message.created_at);
@@ -139,10 +146,14 @@ export function ChatArea({
           );
         });
 
-        return items;
-      })()}
-      <div ref={messagesEndRef} />
-    </div>
+          return items;
+        })()}
+        <div ref={messagesEndRef} />
+      </div>
+      {typeof seenBy === 'number' && seenBy > 0 && (
+        <div className="px-4 py-1 text-xs text-gray-400">Seen by {seenBy}</div>
+      )}
+    </>
   );
 }
 
