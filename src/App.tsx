@@ -12,6 +12,7 @@ import { useAuth } from './hooks/useAuth';
 import { useDMNotifications } from './hooks/useDMNotifications';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { usePresence } from './hooks/usePresence';
+import { useActiveUserProfiles } from './hooks/useActiveUserProfiles';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -39,6 +40,7 @@ function App() {
   } = useMessages(user?.id ?? null);
 
   const activeUserIds = usePresence();
+  const activeUsers = useActiveUserProfiles(activeUserIds);
 
   // Show loading spinner while checking auth
   if (authLoading) {
@@ -98,6 +100,7 @@ function App() {
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             hasUnreadDMs={hasUnread}
+            activeUsers={activeUsers}
           />
         </div>
         <DMNotification
@@ -138,6 +141,7 @@ function App() {
         currentPage={currentPage}
         onPageChange={setCurrentPage}
         hasUnreadDMs={hasUnread}
+        activeUsers={activeUsers}
       />
       <DMNotification
         preview={dmPreview}
