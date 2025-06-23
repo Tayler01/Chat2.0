@@ -454,7 +454,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   return (
     <div className="h-screen md:h-[calc(100vh-5rem)] overflow-hidden bg-gray-900">
-      <div className="flex px-2 sm:px-8 lg:px-16 py-2 sm:py-6 h-full gap-2 sm:gap-6 relative">
+      <div className="flex px-2 sm:px-8 lg:px-16 py-2 sm:py-6 h-full gap-2 sm:gap-6 relative min-h-0">
         {/* Contacts Sidebar */}
         <div className={`${
           selectedConversation ? 'hidden md:flex' : 'flex'
@@ -661,7 +661,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         {/* Chat Area */}
         <div className={`${
           selectedConversation ? 'flex' : 'hidden md:flex'
-        } flex-1 bg-gray-800 rounded-xl border border-gray-600/50 shadow-xl flex-col overflow-hidden ${
+        } flex-1 bg-gray-800 rounded-xl border border-gray-600/50 shadow-xl flex-col overflow-hidden min-h-0 ${
           selectedConversation ? 'absolute md:relative inset-0 md:inset-auto z-10 md:z-auto' : ''
         }`}>
           {selectedConversation ? (
