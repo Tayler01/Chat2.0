@@ -10,9 +10,10 @@ interface ChatHeaderProps {
   currentPage: PageType;
   onPageChange: (page: PageType) => void;
   hasUnreadDMs?: boolean;
+  activeUsers?: { id: string; username: string; avatar_url: string | null; avatar_color: string; }[];
 }
 
-export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, onPageChange, hasUnreadDMs }: ChatHeaderProps) {
+export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, onPageChange, hasUnreadDMs, activeUsers = [] }: ChatHeaderProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
 
@@ -126,7 +127,23 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
           </div>
         </div>
       </div>
-      
+
+      {currentPage === 'group-chat' && activeUsers.length > 0 && (
+        <div className="hidden md:flex absolute inset-0 pointer-events-none items-center justify-center gap-2">
+          {activeUsers.map((u) => (
+            <div key={u.id} className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-gray-700">
+              {u.avatar_url ? (
+                <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: u.avatar_color }}>
+                  {u.username.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Mobile Navigation Menu */}
       {showMobileNav && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-gray-800 border-b border-gray-700 shadow-lg z-50">
