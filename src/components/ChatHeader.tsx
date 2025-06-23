@@ -69,18 +69,16 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
             </button>
           </div>
           
-          {/* Mobile Navigation Toggle (hidden on profile page) */}
-          {currentPage !== 'profile' && (
-            <button
-              onClick={() => setShowMobileNav(!showMobileNav)}
-              className="relative md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors ml-2"
-            >
-              {showMobileNav ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              {hasUnreadDMs && !showMobileNav && (
-                <span className="absolute -top-1 -right-1 block w-2 h-2 bg-red-500 rounded-full" />
-              )}
-            </button>
-          )}
+          {/* Mobile Navigation Toggle */}
+          <button
+            onClick={() => setShowMobileNav(!showMobileNav)}
+            className="relative md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors ml-2"
+          >
+            {showMobileNav ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {hasUnreadDMs && !showMobileNav && (
+              <span className="absolute -top-1 -right-1 block w-2 h-2 bg-red-500 rounded-full" />
+            )}
+          </button>
         </div>
         
         <div className="flex items-center gap-4">
