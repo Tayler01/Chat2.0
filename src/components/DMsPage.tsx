@@ -576,21 +576,23 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-600/30">
-                                {otherUserData.avatar_url ? (
-                                  <img
-                                    src={otherUserData.avatar_url}
-                                    alt={otherUserData.username}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div
-                                    className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                                    style={{ backgroundColor: otherUserData.avatar_color }}
-                                  >
-                                    {otherUserData.username.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
+                              <div className="relative w-10 h-10 flex-shrink-0 ring-2 ring-gray-600/30 rounded-full">
+                                <div className="w-full h-full rounded-full overflow-hidden">
+                                  {otherUserData.avatar_url ? (
+                                    <img
+                                      src={otherUserData.avatar_url}
+                                      alt={otherUserData.username}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div
+                                      className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
+                                      style={{ backgroundColor: otherUserData.avatar_color }}
+                                    >
+                                      {otherUserData.username.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                </div>
                                 {activeUserIds.includes(otherUserData.id) && (
                                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
                                 )}
@@ -642,21 +644,23 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                           className="w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-600/30">
-                              {user.avatar_url ? (
-                                <img
-                                  src={user.avatar_url}
-                                  alt={user.username}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div
-                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                                  style={{ backgroundColor: user.avatar_color }}
-                                >
-                                  {user.username.charAt(0).toUpperCase()}
-                                </div>
-                              )}
+                            <div className="relative w-10 h-10 flex-shrink-0 ring-2 ring-gray-600/30 rounded-full">
+                              <div className="w-full h-full rounded-full overflow-hidden">
+                                {user.avatar_url ? (
+                                  <img
+                                    src={user.avatar_url}
+                                    alt={user.username}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div
+                                    className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
+                                    style={{ backgroundColor: user.avatar_color }}
+                                  >
+                                    {user.username.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
                               {activeUserIds.includes(user.id) && (
                                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
                               )}
@@ -713,25 +717,27 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                     const otherUserData = getOtherUserData(selectedConversation);
                     return (
                       <>
-                        <div className="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-blue-400/30">
-                          {otherUserData.avatar_url ? (
-                            <img
-                              src={otherUserData.avatar_url}
-                              alt={otherUserData.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div
-                              className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                              style={{ backgroundColor: otherUserData.avatar_color }}
-                            >
-                              {otherUserData.username.charAt(0).toUpperCase()}
+                          <div className="relative w-10 h-10 ring-2 ring-blue-400/30 rounded-full">
+                            <div className="w-full h-full rounded-full overflow-hidden">
+                              {otherUserData.avatar_url ? (
+                                <img
+                                  src={otherUserData.avatar_url}
+                                  alt={otherUserData.username}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
+                                  style={{ backgroundColor: otherUserData.avatar_color }}
+                                >
+                                  {otherUserData.username.charAt(0).toUpperCase()}
+                                </div>
+                              )}
                             </div>
-                          )}
-                          {activeUserIds.includes(otherUserData.id) && (
-                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
-                          )}
-                        </div>
+                            {activeUserIds.includes(otherUserData.id) && (
+                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
+                            )}
+                          </div>
                         <div>
                           <h3 className="text-lg font-semibold text-white">
                             {otherUserData.username}
@@ -773,49 +779,51 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                         message.sender_id === currentUser.id ? 'flex-row-reverse' : ''
                       }`}
                     >
-                      <button
-                        className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
-                        onClick={() => {
-                          onUserClick?.(message.sender_id);
-                        }}
-                        title={`View ${message.sender_id === currentUser.id ? currentUser.username : getOtherUser(selectedConversation).username}'s profile`}
-                      >
-                        {message.sender_id === currentUser.id ? (
-                          currentUserData?.avatar_url ? (
-                            <img
-                              src={currentUserData.avatar_url}
-                              alt={currentUser.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div 
-                              className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                              style={{ backgroundColor: currentUserData?.avatar_color || currentUser.avatar_color }}
-                            >
-                              {currentUser.username.charAt(0).toUpperCase()}
-                            </div>
-                          )
-                        ) : (() => {
-                          const otherUserData = getOtherUserData(selectedConversation);
-                          return otherUserData.avatar_url ? (
-                            <img
-                              src={otherUserData.avatar_url}
-                              alt={otherUserData.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div
-                              className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                              style={{ backgroundColor: otherUserData.avatar_color }}
-                            >
-                              {otherUserData.username.charAt(0).toUpperCase()}
-                            </div>
-                          );
-                        })()}
-                        {activeUserIds.includes(message.sender_id) && (
-                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
-                        )}
-                      </button>
+                        <button
+                          className="relative w-8 h-8 flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer rounded-full"
+                          onClick={() => {
+                            onUserClick?.(message.sender_id);
+                          }}
+                          title={`View ${message.sender_id === currentUser.id ? currentUser.username : getOtherUser(selectedConversation).username}'s profile`}
+                        >
+                          <div className="w-full h-full rounded-full overflow-hidden">
+                            {message.sender_id === currentUser.id ? (
+                              currentUserData?.avatar_url ? (
+                                <img
+                                  src={currentUserData.avatar_url}
+                                  alt={currentUser.username}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
+                                  style={{ backgroundColor: currentUserData?.avatar_color || currentUser.avatar_color }}
+                                >
+                                  {currentUser.username.charAt(0).toUpperCase()}
+                                </div>
+                              )
+                            ) : (() => {
+                              const otherUserData = getOtherUserData(selectedConversation);
+                              return otherUserData.avatar_url ? (
+                                <img
+                                  src={otherUserData.avatar_url}
+                                  alt={otherUserData.username}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
+                                  style={{ backgroundColor: otherUserData.avatar_color }}
+                                >
+                                  {otherUserData.username.charAt(0).toUpperCase()}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          {activeUserIds.includes(message.sender_id) && (
+                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
+                          )}
+                        </button>
                       
                       <div className={`flex flex-col max-w-xs sm:max-w-md relative ${
                         message.sender_id === currentUser.id ? 'items-end' : 'items-start'
