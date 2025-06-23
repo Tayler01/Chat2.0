@@ -222,14 +222,14 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center pt-12 md:pt-0">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 relative">
+    <div className="min-h-screen bg-gray-900 relative pt-12 md:pt-0">
       {/* Same header as main page */}
       <ChatHeader
         userName={user.username}

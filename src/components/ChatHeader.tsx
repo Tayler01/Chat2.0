@@ -23,7 +23,7 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
   };
 
   return (
-    <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 sm:p-4 shadow-lg sticky top-0 left-0 right-0 z-50 safe-area-inset-top">
+    <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 sm:p-4 shadow-lg fixed sm:sticky top-0 left-0 right-0 z-50 safe-area-inset-top">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-6 sm:ml-8">
           {/* Logo */}
