@@ -286,6 +286,29 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     cleanupConnections
   ]);
 
+  // Refresh users and conversations when the page regains focus or becomes
+  // visible. This helps recover if the tab was idle for a while.
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchUsers();
+      fetchConversations();
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        handleRefresh();
+      }
+    };
+
+    window.addEventListener('focus', handleRefresh);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('focus', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [fetchUsers, fetchConversations]);
+
   useEffect(() => {
     if (!selectedConversation) return;
     setMessageLimit((limit) =>
