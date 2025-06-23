@@ -54,6 +54,12 @@ export function useMessages(userId: string | null) {
     channelRef.current = channel;
   };
 
+  const refresh = () => {
+    if (!userId) return;
+    subscribeToMessages();
+    fetchLatestMessages();
+  };
+
   useEffect(() => {
     if (!userId) return;
 
@@ -193,6 +199,7 @@ export function useMessages(userId: string | null) {
     sendMessage,
     fetchOlderMessages,
     hasMore,
+    refresh,
   };
 }
 
