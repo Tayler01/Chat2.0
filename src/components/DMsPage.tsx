@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
 import { Smile } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useToast } from './Toast';
 
 interface User {
   id: string;
@@ -73,6 +74,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const [messageLimit, setMessageLimit] = useState(DM_PAGE_SIZE);
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
   const [isReacting, setIsReacting] = useState(false);
+  const { show } = useToast();
 
   const getConversationWithUser = useCallback(
     (userId: string) =>
@@ -399,7 +401,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     } catch (error) {
       console.error('Error toggling DM reaction:', error);
       // Show user-friendly error message
-      alert('Failed to add reaction. Please try again.');
+      show('Failed to add reaction. Please try again.');
     } finally {
       setIsReacting(false);
     }
