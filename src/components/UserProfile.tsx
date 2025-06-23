@@ -229,7 +229,7 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 relative">
+    <div className="min-h-screen bg-gray-900 relative pt-12 md:pt-20">
       {/* Same header as main page */}
       <ChatHeader
         userName={user.username}
