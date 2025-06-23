@@ -75,34 +75,36 @@ export function MessageBubble({
     <div className={`flex gap-2 sm:gap-3 mb-3 sm:mb-4 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
       <button
         onClick={() => onUserClick?.(message.user_id)}
-        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-medium flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer overflow-hidden relative"
+        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-medium flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer relative"
         style={{ backgroundColor: message.avatar_color }}
         title={`View ${message.user_name}'s profile`}
       >
-        {message.avatar_url ? (
-          <img
-            src={message.avatar_url}
-            alt={message.user_name}
-            className="w-full h-full rounded-full object-cover"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              const parent = e.currentTarget.parentElement;
-              if (parent) {
-                const fallback = parent.querySelector('.avatar-fallback') as HTMLElement;
-                if (fallback) {
-                  fallback.style.display = 'flex';
+        <div className="w-full h-full rounded-full overflow-hidden">
+          {message.avatar_url ? (
+            <img
+              src={message.avatar_url}
+              alt={message.user_name}
+              className="w-full h-full rounded-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const parent = e.currentTarget.parentElement;
+                if (parent) {
+                  const fallback = parent.querySelector('.avatar-fallback') as HTMLElement;
+                  if (fallback) {
+                    fallback.style.display = 'flex';
+                  }
                 }
-              }
-            }}
-          />
-        ) : (
-          message.user_name.charAt(0).toUpperCase()
-        )}
-        {message.avatar_url && (
-          <span className="avatar-fallback absolute inset-0 flex items-center justify-center text-white text-xs sm:text-sm font-medium" style={{ display: 'none' }}>
-            {message.user_name.charAt(0).toUpperCase()}
-          </span>
-        )}
+              }}
+            />
+          ) : (
+            message.user_name.charAt(0).toUpperCase()
+          )}
+          {message.avatar_url && (
+            <span className="avatar-fallback absolute inset-0 flex items-center justify-center text-white text-xs sm:text-sm font-medium" style={{ display: 'none' }}>
+              {message.user_name.charAt(0).toUpperCase()}
+            </span>
+          )}
+        </div>
         {isActive && (
           <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
         )}
