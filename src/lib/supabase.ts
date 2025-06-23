@@ -29,6 +29,7 @@ export interface Database {
           bio: string | null;
           created_at: string | null;
           updated_at: string | null;
+          last_active: string | null;
         };
         Insert: {
           id: string;
@@ -40,6 +41,7 @@ export interface Database {
           bio?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
+          last_active?: string | null;
         };
         Update: {
           id?: string;
@@ -51,6 +53,7 @@ export interface Database {
           bio?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
+          last_active?: string | null;
         };
       };
       messages: {

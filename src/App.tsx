@@ -11,6 +11,7 @@ import { useMessages } from './hooks/useMessages';
 import { useAuth } from './hooks/useAuth';
 import { useDMNotifications } from './hooks/useDMNotifications';
 import { LoadingSpinner } from './components/LoadingSpinner';
+import { usePresence } from './hooks/usePresence';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -36,6 +37,8 @@ function App() {
     fetchOlderMessages,
     hasMore,
   } = useMessages(user?.id ?? null);
+
+  const activeUserIds = usePresence();
 
   // Show loading spinner while checking auth
   if (authLoading) {
@@ -152,6 +155,7 @@ function App() {
         fetchOlderMessages={fetchOlderMessages}
         hasMore={hasMore}
         onUserClick={handleUserClick}
+        activeUserIds={activeUserIds}
       />
 
       <MessageInput 
