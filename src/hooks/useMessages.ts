@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Message } from '../types/message';
 
@@ -14,7 +14,7 @@ export function useMessages(userId: string | null) {
   const oldestTimestampRef = useRef<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const subscribeToMessages = () => {
+  const subscribeToMessages = useCallback(() => {
     if (!userId) return;
 
     channelRef.current?.unsubscribe();
@@ -52,13 +52,13 @@ export function useMessages(userId: string | null) {
       .subscribe();
 
     channelRef.current = channel;
-  };
+  }, [userId]);
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     if (!userId) return;
     subscribeToMessages();
     fetchLatestMessages();
-  };
+  }, [userId, subscribeToMessages, fetchLatestMessages]);
 
   useEffect(() => {
     if (!userId) return;
@@ -69,7 +69,7 @@ export function useMessages(userId: string | null) {
     return () => {
       channelRef.current?.unsubscribe();
     };
-  }, [userId]);
+  }, [userId, fetchLatestMessages, subscribeToMessages]);
 
   useEffect(() => {
     if (!userId) return;
@@ -93,7 +93,7 @@ export function useMessages(userId: string | null) {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [userId]);
+  }, [userId, subscribeToMessages, fetchLatestMessages]);
 
   const updatePresence = async () => {
     try {
@@ -103,7 +103,7 @@ export function useMessages(userId: string | null) {
     }
   };
 
-  const fetchLatestMessages = async () => {
+  const fetchLatestMessages = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -129,7 +129,7 @@ export function useMessages(userId: string | null) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const fetchOlderMessages = async () => {
     if (loadingOlder || !oldestTimestampRef.current || !hasMore) return;
