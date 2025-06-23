@@ -500,7 +500,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
 
   return (
-    <div className="h-screen md:h-[calc(100vh-5rem)] overflow-hidden bg-gray-900">
+    <div className="h-screen md:h-screen overflow-hidden bg-gray-900">
       <div className="flex px-2 sm:px-8 lg:px-16 py-2 sm:py-6 h-full gap-2 sm:gap-6 relative min-h-0">
         {/* Contacts Sidebar */}
         <div className={`${
