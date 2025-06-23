@@ -55,18 +55,24 @@
 
 
 .h-screen {
+  height: 100dvh;
+  height: 100svh;
   height: 100vh;
 }
 
 @supports (-webkit-touch-callout: none) {
   .h-screen {
     height: -webkit-fill-available;
+    height: 100dvh;
+    height: 100svh;
     height: 100vh;
   }
 }
 
 @media screen and (max-width: 768px) {
   .h-\[calc\(100vh-5rem\)\] {
+    height: calc(100dvh - 5rem);
+    height: calc(100svh - 5rem);
     height: calc(100vh - 5rem);
   }
   
