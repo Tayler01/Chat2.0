@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  overflow: hidden;
+  overscroll-behavior-y: contain;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
