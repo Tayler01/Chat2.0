@@ -453,7 +453,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
 
   return (
-    <div className="h-[calc(100vh-5rem)] overflow-hidden bg-gray-900">
+    <div className="h-screen md:h-[calc(100vh-5rem)] overflow-hidden bg-gray-900">
       <div className="flex px-2 sm:px-8 lg:px-16 py-2 sm:py-6 h-full gap-2 sm:gap-6 relative">
         {/* Contacts Sidebar */}
         <div className={`${
@@ -671,11 +671,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                 {/* Mobile back button */}
                 <button
                   onClick={() => {
-                    if (onBackToGroupChat) {
-                      onBackToGroupChat();
-                    } else {
-                      setSelectedConversation(null);
-                    }
+                    setSelectedConversation(null);
                   }}
                   className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded-xl transition-colors mr-3"
                 >
