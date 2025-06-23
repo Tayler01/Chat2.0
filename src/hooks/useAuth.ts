@@ -51,6 +51,9 @@ export function useAuth() {
       } = await supabase.auth.getSession();
       if (session?.user) {
         await fetchUserProfile(session.user);
+      } else {
+        setUser(null);
+        setLoading(false);
       }
     };
 
