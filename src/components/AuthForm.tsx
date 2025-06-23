@@ -43,6 +43,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
           email: data.user.email,
           username: profile?.username || email.split('@')[0],
           avatar_color: profile?.avatar_color || '#3B82F6',
+          avatar_url: profile?.avatar_url || null,
         });
       } else {
         // Sign up new user
@@ -82,6 +83,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
             email: data.user.email,
             username: username.trim(),
             avatar_color: avatarColor,
+            avatar_url: null,
           });
         }
       }

@@ -7,6 +7,7 @@ export interface AuthUser {
   email: string;
   username: string;
   avatar_color: string;
+  avatar_url?: string | null;
 }
 
 export function useAuth() {
@@ -72,7 +73,7 @@ export function useAuth() {
     try {
       const { data: profile } = await supabase
         .from('users')
-        .select('username, avatar_color')
+        .select('username, avatar_color, avatar_url')
         .eq('id', authUser.id)
         .single();
 
@@ -81,6 +82,7 @@ export function useAuth() {
         email: authUser.email || '',
         username: profile?.username || authUser.email?.split('@')[0] || 'User',
         avatar_color: profile?.avatar_color || '#3B82F6',
+        avatar_url: profile?.avatar_url || null,
       });
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -89,6 +91,7 @@ export function useAuth() {
         email: authUser.email || '',
         username: authUser.email?.split('@')[0] || 'User',
         avatar_color: '#3B82F6',
+        avatar_url: null,
       });
     } finally {
       setLoading(false);
