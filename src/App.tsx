@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AuthForm } from './components/AuthForm';
 import { ChatHeader } from './components/ChatHeader';
 import { ChatArea } from './components/ChatArea';
@@ -37,15 +37,7 @@ function App() {
     sendMessage,
     fetchOlderMessages,
     hasMore,
-    refresh,
   } = useMessages(user?.id ?? null);
-
-  // Refresh group chat data whenever returning to the group chat page
-  useEffect(() => {
-    if (currentPage === 'group-chat') {
-      refresh();
-    }
-  }, [currentPage, refresh]);
 
   const activeUserIds = usePresence();
   const activeUsers = useActiveUserProfiles(activeUserIds);
