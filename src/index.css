@@ -53,9 +53,16 @@
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
+.h-screen {
+  height: 100dvh;
+  height: 100svh;
+}
+
 @supports (-webkit-touch-callout: none) {
   .h-screen {
     height: -webkit-fill-available;
+    height: 100dvh;
+    height: 100svh;
   }
 }
 
