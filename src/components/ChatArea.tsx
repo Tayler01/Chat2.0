@@ -15,6 +15,7 @@ interface ChatAreaProps {
   fetchOlderMessages: () => void;
   hasMore: boolean;
   onUserClick?: (userId: string) => void;
+  activeUserIds: string[];
 }
 
 export function ChatArea({
@@ -26,7 +27,8 @@ export function ChatArea({
   fetchOlderMessages,
   hasMore,
   onUserClick,
-  
+  activeUserIds,
+
 }: ChatAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -134,6 +136,7 @@ export function ChatArea({
               isOwnMessage={message.user_id === currentUserId}
               currentUserId={currentUserId}
               onUserClick={onUserClick}
+              activeUserIds={activeUserIds}
               showTimestamp={
                 !nextMessage ||
                 nextMessage.user_id !== message.user_id ||

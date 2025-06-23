@@ -168,6 +168,8 @@ export function useMessages(userId: string | null) {
       });
 
       if (error) throw error;
+
+      await supabase.rpc('update_user_last_active');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
     }

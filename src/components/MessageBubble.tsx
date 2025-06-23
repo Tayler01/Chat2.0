@@ -10,6 +10,7 @@ interface MessageBubbleProps {
   onUserClick?: (userId: string) => void;
   currentUserId?: string;
   showTimestamp?: boolean;
+  activeUserIds: string[];
 }
 
 export function MessageBubble({
@@ -18,10 +19,12 @@ export function MessageBubble({
   onUserClick,
   currentUserId,
   showTimestamp = true,
+  activeUserIds,
 }: MessageBubbleProps) {
   const [showPicker, setShowPicker] = useState(false);
   const [isReacting, setIsReacting] = useState(false);
   const { show } = useToast();
+  const isActive = activeUserIds.includes(message.user_id);
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], {
@@ -99,6 +102,9 @@ export function MessageBubble({
           <span className="avatar-fallback absolute inset-0 flex items-center justify-center text-white text-xs sm:text-sm font-medium" style={{ display: 'none' }}>
             {message.user_name.charAt(0).toUpperCase()}
           </span>
+        )}
+        {isActive && (
+          <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
         )}
       </button>
       

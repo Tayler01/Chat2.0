@@ -9,6 +9,7 @@ Create a `.env` file in the project root and set the Supabase credentials used b
 ```bash
 VITE_SUPABASE_URL=<your Supabase project URL>
 VITE_SUPABASE_ANON_KEY=<your Supabase anon key>
+VITE_PRESENCE_INTERVAL_MS=30000 # optional presence ping interval in ms
 ```
 
 ## Database migrations
@@ -21,4 +22,4 @@ supabase db push       # apply new migrations
 supabase db reset      # recreate the database with all migrations
 ```
 
-The latest migrations remove the unused `subscriptions` table that previously stored push-notification data.
+The latest migrations add a `last_active` column and `update_user_last_active` function for presence tracking. Run `supabase db push` after pulling updates.
