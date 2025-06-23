@@ -569,7 +569,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                                   </div>
                                 )}
                                 {activeUserIds.includes(otherUserData.id) && (
-                                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
+                                  <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -635,7 +635,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                                 </div>
                               )}
                               {activeUserIds.includes(user.id) && (
-                                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
+                                <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -706,7 +706,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                             </div>
                           )}
                           {activeUserIds.includes(otherUserData.id) && (
-                            <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
+                            <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
                           )}
                         </div>
                         <div>
@@ -790,7 +790,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                           );
                         })()}
                         {activeUserIds.includes(message.sender_id) && (
-                          <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
+                          <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
                         )}
                       </button>
                       
