@@ -729,7 +729,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                 <button
                   onClick={() => {
                     setSelectedConversation(null);
-                    setLoading(false);
                   }}
                   className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded-xl transition-colors mr-3"
                 >
@@ -773,10 +772,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                   })()}
                 </div>
                 <button
-                  onClick={() => {
-                    setSelectedConversation(null);
-                    setLoading(false);
-                  }}
+                  onClick={() => setSelectedConversation(null)}
                   className="hidden md:block p-2 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded-xl transition-colors"
                 >
                   <X className="w-5 h-5" />
