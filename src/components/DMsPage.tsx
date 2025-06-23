@@ -77,6 +77,13 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
   const [isReacting, setIsReacting] = useState(false);
   const { show } = useToast();
+  const updatePresence = async () => {
+    try {
+      await supabase.rpc('update_user_last_active');
+    } catch (err) {
+      console.error('Failed to update presence', err);
+    }
+  };
 
   const getConversationWithUser = useCallback(
     (userId: string) =>
@@ -238,6 +245,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
       if (error) throw error;
       setUsers(data || []);
+      await updatePresence();
     } catch (err) {
       console.error('Error fetching users:', err);
     }
@@ -255,6 +263,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
       if (error) throw error;
       setConversations((data || []).map(normalizeConversation));
+      await updatePresence();
     } catch (err) {
       console.error('Error fetching conversations:', err);
     } finally {
@@ -302,6 +311,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     const handleRefresh = () => {
       fetchUsers();
       fetchConversations();
+      updatePresence();
     };
 
     const handleVisibility = () => {
@@ -349,6 +359,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         selectedConversation.updated_at
       );
     }
+    updatePresence();
   }, [selectedConversation?.messages, messageLimit, selectedConversation, onConversationOpen]);
 
   useEffect(() => {
@@ -400,6 +411,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         if (exists) return prev;
         return [normalized, ...prev];
       });
+      await updatePresence();
     } catch (err) {
       console.error('Error starting conversation:', err);
     }
@@ -416,6 +428,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       });
 
       setNewMessage('');
+      await updatePresence();
     } catch (err) {
       console.error('Error sending message:', err);
     }
