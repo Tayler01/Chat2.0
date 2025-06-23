@@ -47,17 +47,12 @@ export function DMNotification({ preview, onJump }: DMNotificationProps) {
   if (!shouldRender || !preview) return null;
 
   return (
-    <div 
-      className={`fixed z-50 transition-all duration-300 ease-out ${
-        isVisible 
-          ? 'translate-y-0 opacity-100' 
+    <div
+      className={`fixed z-50 transition-all duration-300 ease-out left-0 right-0 ${
+        isVisible
+          ? 'translate-y-0 opacity-100'
           : '-translate-y-full opacity-0'
-      }`}
-      style={{ 
-        top: '5rem', // Position under header
-        left: '0',
-        right: '0'
-      }}
+      } top-12 md:top-20`}
     >
       {/* Desktop notification - positioned to the right */}
       <div className="hidden md:block">
