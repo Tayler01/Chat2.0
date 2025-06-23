@@ -117,6 +117,7 @@ function App() {
           }}
           initialConversationId={openConversationId}
           onBackToGroupChat={() => setCurrentPage('group-chat')}
+          activeUserIds={activeUserIds}
         />
         {previewUserId && (
           <ProfilePreviewModal
