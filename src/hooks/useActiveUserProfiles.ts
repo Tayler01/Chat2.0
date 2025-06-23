@@ -29,8 +29,32 @@ export function useActiveUserProfiles(activeUserIds: string[]) {
         setProfiles(data || []);
       }
     };
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
     fetchProfiles();
+
+    channel = supabase
+      .channel('user-profile-updates')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'users' },
+        (payload) => {
+          const updated = payload.new as ActiveUserProfile & { id: string };
+          if (!activeUserIds.includes(updated.id)) return;
+          setProfiles((prev) => {
+            const idx = prev.findIndex((p) => p.id === updated.id);
+            if (idx === -1) return prev;
+            const next = [...prev];
+            next[idx] = { ...next[idx], ...updated };
+            return next;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel?.unsubscribe();
+    };
   }, [activeUserIds]);
 
   return profiles;

@@ -89,6 +89,14 @@ export function useMessages(userId: string | null) {
     };
   }, [userId]);
 
+  const updatePresence = async () => {
+    try {
+      await supabase.rpc('update_user_last_active');
+    } catch (err) {
+      console.error('Failed to update last_active', err);
+    }
+  };
+
   const fetchLatestMessages = async () => {
     try {
       setLoading(true);
@@ -109,6 +117,7 @@ export function useMessages(userId: string | null) {
       }
 
       setHasMore((data || []).length === PAGE_SIZE);
+      await updatePresence();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load messages');
     } finally {
@@ -144,6 +153,7 @@ export function useMessages(userId: string | null) {
       }
 
       setHasMore((data || []).length === PAGE_SIZE);
+      await updatePresence();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load older messages');
     } finally {
