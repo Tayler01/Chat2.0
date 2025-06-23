@@ -104,7 +104,7 @@ export function MessageBubble({
           </span>
         )}
         {isActive && (
-          <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
+          <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
         )}
       </button>
       
