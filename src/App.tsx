@@ -91,7 +91,7 @@ function App() {
   // Show DMs page
   if (currentPage === 'dms') {
     return (
-      <div className="flex flex-col h-screen bg-gray-900">
+      <div className="flex flex-col h-screen bg-gray-900 md:pt-20">
         <div className="hidden md:block">
           <ChatHeader
             userName={user.username}
@@ -133,7 +133,7 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900">
+    <div className="flex flex-col h-screen bg-gray-900 pt-12 md:pt-20">
       <ChatHeader
         userName={user.username}
         onClearUser={signOut}
