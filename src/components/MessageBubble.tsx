@@ -11,6 +11,7 @@ interface MessageBubbleProps {
   currentUserId?: string;
   showTimestamp?: boolean;
   activeUserIds: string[];
+  showActiveDot?: boolean;
 }
 
 export function MessageBubble({
@@ -20,11 +21,12 @@ export function MessageBubble({
   currentUserId,
   showTimestamp = true,
   activeUserIds,
+  showActiveDot = true,
 }: MessageBubbleProps) {
   const [showPicker, setShowPicker] = useState(false);
   const [isReacting, setIsReacting] = useState(false);
   const { show } = useToast();
-  const isActive = activeUserIds.includes(message.user_id);
+  const isActive = showActiveDot && activeUserIds.includes(message.user_id);
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], {
