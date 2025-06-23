@@ -662,7 +662,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         <div className={`${
           selectedConversation ? 'flex' : 'hidden md:flex'
         } flex-1 bg-gray-800 rounded-xl border border-gray-600/50 shadow-xl flex-col overflow-hidden min-h-0 ${
-          selectedConversation ? 'absolute md:relative inset-0 md:inset-auto z-10 md:z-auto h-full w-full' : ''
+          selectedConversation ? 'fixed md:relative inset-0 md:inset-auto z-10 md:z-auto h-screen w-screen md:h-full md:w-full' : ''
         }`}>
           {selectedConversation ? (
             <>
