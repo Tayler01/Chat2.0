@@ -119,6 +119,16 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     return msgs.slice(start);
   }, [selectedConversation, messageLimit]);
 
+  const latestMessageByUser = useMemo(() => {
+    const map = new Map<string, string>();
+    if (selectedConversation) {
+      (selectedConversation.messages || []).forEach((m) => {
+        map.set(m.sender_id, m.id);
+      });
+    }
+    return map;
+  }, [selectedConversation?.messages]);
+
   const cleanupConnections = useCallback(() => {
     if (channelRef.current) {
       channelRef.current.unsubscribe();
@@ -820,9 +830,10 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                               );
                             })()}
                           </div>
-                          {activeUserIds.includes(message.sender_id) && (
-                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
-                          )}
+                          {activeUserIds.includes(message.sender_id) &&
+                            latestMessageByUser.get(message.sender_id) === message.id && (
+                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
+                            )}
                         </button>
                       
                       <div className={`flex flex-col max-w-xs sm:max-w-md relative ${

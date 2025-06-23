@@ -35,6 +35,14 @@ export function ChatArea({
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
 
+  const latestMessageByUser = React.useMemo(() => {
+    const map = new Map<string, string>();
+    messages.forEach((m) => {
+      map.set(m.user_id, m.id);
+    });
+    return map;
+  }, [messages]);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container || messages.length === 0) return;
@@ -137,6 +145,7 @@ export function ChatArea({
               currentUserId={currentUserId}
               onUserClick={onUserClick}
               activeUserIds={activeUserIds}
+              showActiveDot={latestMessageByUser.get(message.user_id) === message.id}
               showTimestamp={
                 !nextMessage ||
                 nextMessage.user_id !== message.user_id ||
