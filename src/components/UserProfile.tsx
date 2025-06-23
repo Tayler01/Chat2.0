@@ -229,7 +229,7 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 relative pt-12 md:pt-20">
+    <div className="min-h-screen bg-gray-900 relative">
       {/* Same header as main page */}
       <ChatHeader
         userName={user.username}
@@ -250,7 +250,7 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
       </div>
 
       {/* Main content with grid layout */}
-      <div className="h-[calc(100vh-5rem)] overflow-hidden">
+      <div className="h-screen overflow-hidden">
         <div className="flex justify-start px-4 sm:px-8 lg:px-16 py-4 sm:py-6 h-full">
           
           {/* Profile Card - Left side */}

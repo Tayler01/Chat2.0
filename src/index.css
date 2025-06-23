@@ -53,6 +53,10 @@
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
+.safe-area-inset-top {
+  padding-top: env(safe-area-inset-top);
+}
+
 
 .h-screen {
   height: 100dvh;
