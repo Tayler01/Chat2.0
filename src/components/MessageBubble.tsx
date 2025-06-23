@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Smile } from 'lucide-react';
 import { Message } from '../types/message';
 import { supabase } from '../lib/supabase';
+import { useToast } from './Toast';
 
 interface MessageBubbleProps {
   message: Message;
@@ -20,6 +21,7 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const [showPicker, setShowPicker] = useState(false);
   const [isReacting, setIsReacting] = useState(false);
+  const { show } = useToast();
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], {
@@ -45,7 +47,7 @@ export function MessageBubble({
     } catch (error) {
       console.error('Error toggling reaction:', error);
       // Show user-friendly error message
-      alert('Failed to add reaction. Please try again.');
+      show('Failed to add reaction. Please try again.');
     } finally {
       setIsReacting(false);
     }
