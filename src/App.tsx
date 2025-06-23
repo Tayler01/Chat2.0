@@ -87,14 +87,16 @@ function App() {
   if (currentPage === 'dms') {
     return (
       <div className="flex flex-col h-screen bg-gray-900">
-        <ChatHeader
-          userName={user.username}
-          onClearUser={signOut}
-          onShowProfile={() => setCurrentPage('profile')}
-          currentPage={currentPage}
-          onPageChange={setCurrentPage}
-          hasUnreadDMs={hasUnread}
-        />
+        <div className="hidden md:block">
+          <ChatHeader
+            userName={user.username}
+            onClearUser={signOut}
+            onShowProfile={() => setCurrentPage('profile')}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            hasUnreadDMs={hasUnread}
+          />
+        </div>
         <DMNotification
           preview={dmPreview}
           onJump={(id) => {
@@ -111,6 +113,7 @@ function App() {
             setOpenConversationId(null);
           }}
           initialConversationId={openConversationId}
+          onBackToGroupChat={() => setCurrentPage('group-chat')}
         />
         {previewUserId && (
           <ProfilePreviewModal

@@ -52,9 +52,10 @@ interface DMsPageProps {
     lastTimestamp: string
   ) => void;
   initialConversationId?: string | null;
+  onBackToGroupChat?: () => void;
 }
 
-export function DMsPage({ currentUser, onUserClick, unreadConversations = [], onConversationOpen, initialConversationId }: DMsPageProps) {
+export function DMsPage({ currentUser, onUserClick, unreadConversations = [], onConversationOpen, initialConversationId, onBackToGroupChat }: DMsPageProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<DMConversation | null>(null);
@@ -460,10 +461,18 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         } w-full md:w-80 bg-gray-800 rounded-xl border border-gray-600/50 shadow-xl flex-col overflow-hidden`}>
           {/* Search */}
           <div className="p-4 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border-b border-gray-600/50 backdrop-blur-sm">
-            <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-emerald-400" />
-              Contacts
-            </h2>
+            <div className="flex items-center mb-3">
+              <button
+                onClick={() => onBackToGroupChat?.()}
+                className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded-xl transition-colors mr-3"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-emerald-400" />
+                Contacts
+              </h2>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -661,7 +670,13 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
               <div className="p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-gray-600/50 flex items-center justify-between backdrop-blur-sm">
                 {/* Mobile back button */}
                 <button
-                  onClick={() => setSelectedConversation(null)}
+                  onClick={() => {
+                    if (onBackToGroupChat) {
+                      onBackToGroupChat();
+                    } else {
+                      setSelectedConversation(null);
+                    }
+                  }}
                   className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded-xl transition-colors mr-3"
                 >
                   <ArrowLeft className="w-5 h-5" />
