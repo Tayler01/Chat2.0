@@ -53,9 +53,10 @@ interface DMsPageProps {
   ) => void;
   initialConversationId?: string | null;
   onBackToGroupChat?: () => void;
+  activeUserIds: string[];
 }
 
-export function DMsPage({ currentUser, onUserClick, unreadConversations = [], onConversationOpen, initialConversationId, onBackToGroupChat }: DMsPageProps) {
+export function DMsPage({ currentUser, onUserClick, unreadConversations = [], onConversationOpen, initialConversationId, onBackToGroupChat, activeUserIds }: DMsPageProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<DMConversation | null>(null);
@@ -552,7 +553,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-600/30">
+                              <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-600/30">
                                 {otherUserData.avatar_url ? (
                                   <img
                                     src={otherUserData.avatar_url}
@@ -560,12 +561,15 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <div 
+                                  <div
                                     className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
                                     style={{ backgroundColor: otherUserData.avatar_color }}
                                   >
                                     {otherUserData.username.charAt(0).toUpperCase()}
                                   </div>
+                                )}
+                                {activeUserIds.includes(otherUserData.id) && (
+                                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -615,7 +619,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                           className="w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-600/30">
+                            <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-600/30">
                               {user.avatar_url ? (
                                 <img
                                   src={user.avatar_url}
@@ -623,12 +627,15 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <div 
+                                <div
                                   className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
                                   style={{ backgroundColor: user.avatar_color }}
                                 >
                                   {user.username.charAt(0).toUpperCase()}
                                 </div>
+                              )}
+                              {activeUserIds.includes(user.id) && (
+                                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -683,7 +690,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                     const otherUserData = getOtherUserData(selectedConversation);
                     return (
                       <>
-                        <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-blue-400/30">
+                        <div className="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-blue-400/30">
                           {otherUserData.avatar_url ? (
                             <img
                               src={otherUserData.avatar_url}
@@ -691,12 +698,15 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div 
+                            <div
                               className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
                               style={{ backgroundColor: otherUserData.avatar_color }}
                             >
                               {otherUserData.username.charAt(0).toUpperCase()}
                             </div>
+                          )}
+                          {activeUserIds.includes(otherUserData.id) && (
+                            <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
                           )}
                         </div>
                         <div>
@@ -741,7 +751,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                       }`}
                     >
                       <button
-                        className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
+                        className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
                         onClick={() => {
                           onUserClick?.(message.sender_id);
                         }}
@@ -771,7 +781,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div 
+                            <div
                               className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
                               style={{ backgroundColor: otherUserData.avatar_color }}
                             >
@@ -779,6 +789,9 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                             </div>
                           );
                         })()}
+                        {activeUserIds.includes(message.sender_id) && (
+                          <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900" />
+                        )}
                       </button>
                       
                       <div className={`flex flex-col max-w-xs sm:max-w-md relative ${
