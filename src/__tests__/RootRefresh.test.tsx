@@ -11,6 +11,7 @@ beforeEach(async () => {
 });
 import * as auth from '../hooks/useAuth';
 import * as messages from '../hooks/useMessages';
+import * as dms from '../hooks/useDirectMessages';
 import * as presence from '../utils/updatePresence';
 
 import '@testing-library/jest-dom';
@@ -31,6 +32,7 @@ jest.mock('../lib/supabase', () => ({
 test('focus triggers refresh without reload', () => {
   const authSpy = jest.spyOn(auth, 'triggerAuthRefresh').mockImplementation(() => Promise.resolve());
   const msgSpy = jest.spyOn(messages, 'triggerMessagesRefresh').mockImplementation(() => {});
+  const dmSpy = jest.spyOn(dms, 'triggerDMsRefresh').mockImplementation(() => {});
   const presSpy = jest.spyOn(presence, 'updatePresence').mockImplementation(() => Promise.resolve());
 
   render(<Root />);
@@ -39,12 +41,14 @@ test('focus triggers refresh without reload', () => {
 
   expect(authSpy).toHaveBeenCalled();
   expect(msgSpy).toHaveBeenCalled();
+  expect(dmSpy).toHaveBeenCalled();
   expect(presSpy).toHaveBeenCalled();
 });
 
 test('visibility change triggers refresh', () => {
   const authSpy = jest.spyOn(auth, 'triggerAuthRefresh').mockImplementation(() => Promise.resolve());
   const msgSpy = jest.spyOn(messages, 'triggerMessagesRefresh').mockImplementation(() => {});
+  const dmSpy = jest.spyOn(dms, 'triggerDMsRefresh').mockImplementation(() => {});
   const presSpy = jest.spyOn(presence, 'updatePresence').mockImplementation(() => Promise.resolve());
 
   render(<Root />);
@@ -54,5 +58,6 @@ test('visibility change triggers refresh', () => {
 
   expect(authSpy).toHaveBeenCalled();
   expect(msgSpy).toHaveBeenCalled();
+  expect(dmSpy).toHaveBeenCalled();
   expect(presSpy).toHaveBeenCalled();
 });
