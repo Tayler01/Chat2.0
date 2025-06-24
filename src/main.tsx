@@ -3,34 +3,30 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { ToastProvider } from './components/Toast';
 import './index.css';
+import { triggerAuthRefresh } from './hooks/useAuth';
+import { triggerMessagesRefresh } from './hooks/useMessages';
+import { updatePresence } from './utils/updatePresence';
 
 // Component responsible for setting up focus/visibility event listeners.
-function Root() {
+export function Root() {
   useEffect(() => {
-    // Reload the entire page whenever the tab regains focus after being
-    // backgrounded. This helps recover when the app becomes flaky after a
-    // long period of inactivity.
-    let hasFocusedOnce = document.hasFocus();
-
-    const reloadOnFocus = () => {
-      if (hasFocusedOnce) {
-        window.location.reload();
-      } else {
-        hasFocusedOnce = true;
-      }
+    const handleRefresh = () => {
+      triggerAuthRefresh();
+      triggerMessagesRefresh();
+      updatePresence();
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        reloadOnFocus();
+        handleRefresh();
       }
     };
 
-    window.addEventListener('focus', reloadOnFocus);
+    window.addEventListener('focus', handleRefresh);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      window.removeEventListener('focus', reloadOnFocus);
+      window.removeEventListener('focus', handleRefresh);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);

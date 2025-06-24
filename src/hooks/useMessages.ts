@@ -5,6 +5,12 @@ import { Message } from '../types/message';
 
 const PAGE_SIZE = 20;
 
+let externalMessagesRefresh: (() => void) | null = null;
+
+export function triggerMessagesRefresh() {
+  externalMessagesRefresh?.();
+}
+
 export function useMessages(userId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,13 +61,23 @@ export function useMessages(userId: string | null) {
     channelRef.current = channel;
   };
 
+  const refresh = () => {
+    subscribeToMessages();
+    fetchLatestMessages();
+  };
+
   useEffect(() => {
     if (!userId) return;
+
+    externalMessagesRefresh = refresh;
 
     fetchLatestMessages();
     subscribeToMessages();
 
     return () => {
+      if (externalMessagesRefresh === refresh) {
+        externalMessagesRefresh = null;
+      }
       channelRef.current?.unsubscribe();
     };
   }, [userId]);
@@ -187,6 +203,7 @@ export function useMessages(userId: string | null) {
     sendMessage,
     fetchOlderMessages,
     hasMore,
+    refresh,
   };
 }
 
