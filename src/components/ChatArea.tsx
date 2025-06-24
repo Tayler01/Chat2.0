@@ -1,11 +1,10 @@
-import React, { useEffect, useRef, useCallback } from 'react';
-import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
-import { MessageBubble } from './MessageBubble';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
+import { FixedSizeList as List } from 'react-window';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
-import { DateDivider } from './DateDivider';
 import { formatDateGroup } from '../utils/formatDateGroup';
 import { Message } from '../types/message';
+import { MessageRow } from './MessageRow';
 
 interface ChatAreaProps {
   messages: Message[];
@@ -31,8 +30,9 @@ export function ChatArea({
   activeUserIds,
 
 }: ChatAreaProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const listRef = useRef<List>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
@@ -75,6 +75,19 @@ export function ChatArea({
     return items;
   }, [messages, latestMessageByUser]);
 
+  const [listHeight, setListHeight] = useState(0);
+
+  useEffect(() => {
+    const updateHeight = () => {
+      if (wrapperRef.current) {
+        setListHeight(wrapperRef.current.clientHeight);
+      }
+    };
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container || virtualItems.length === 0) return;
@@ -83,39 +96,32 @@ export function ChatArea({
       container.scrollHeight - container.scrollTop - container.clientHeight < 200;
 
     if (!hasAutoScrolled.current) {
-      virtuosoRef.current?.scrollToIndex({ index: virtualItems.length - 1 });
+      listRef.current?.scrollToItem(virtualItems.length - 1);
       hasAutoScrolled.current = true;
     } else if (isNearBottom) {
-      virtuosoRef.current?.scrollToIndex({
-        index: virtualItems.length - 1,
-        align: 'end',
-        behavior: 'smooth',
-      });
+      listRef.current?.scrollToItem(virtualItems.length - 1, 'end');
     }
-
   }, [virtualItems.length]);
 
   const handleScroll = useCallback(() => {
-  const container = containerRef.current;
-  if (!container || !hasMore || isFetchingRef.current) return;
+    const container = containerRef.current;
+    if (!container || !hasMore || isFetchingRef.current) return;
 
-  // Allow a small threshold to improve touch scrolling experience
-  if (container.scrollTop <= 20) {
-    const previousHeight = container.scrollHeight;
-    isFetchingRef.current = true;
+    if (container.scrollTop <= 20) {
+      const previousHeight = container.scrollHeight;
+      isFetchingRef.current = true;
 
-    fetchOlderMessages();
-    
-    // Use a timeout to restore scroll position after messages load
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        const newHeight = container.scrollHeight;
-        container.scrollTop = newHeight - previousHeight;
+      fetchOlderMessages();
 
-        isFetchingRef.current = false;
-      });
-    }, 100);
-  }
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          const newHeight = container.scrollHeight;
+          container.scrollTop = newHeight - previousHeight;
+
+          isFetchingRef.current = false;
+        });
+      }, 100);
+    }
   }, [fetchOlderMessages, hasMore]);
 
   useEffect(() => {
@@ -148,40 +154,24 @@ export function ChatArea({
   }
 
   return (
-    <>
-      <Virtuoso
-        ref={virtuosoRef}
-        data={virtualItems}
-        scrollerRef={(ref) => {
-          containerRef.current = ref as HTMLDivElement | null;
-        }}
-        className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 bg-gray-900 relative"
-        followOutput="smooth"
-        itemContent={(_, item) => {
-          if (item.type === 'date') {
-            return (
-              <div className="my-4">
-                <DateDivider label={item.label} />
-              </div>
-            );
-          }
-
-          return (
-            <MessageBubble
-              message={item.message}
-              isOwnMessage={item.message.user_id === currentUserId}
-              currentUserId={currentUserId}
-              onUserClick={onUserClick}
-              activeUserIds={activeUserIds}
-              showActiveDot={item.showActiveDot}
-              showTimestamp={item.showTimestamp}
-            />
-          );
-        }}
-        components={{ Footer: () => <div ref={messagesEndRef} /> }}
-      />
-
-    </>
+    <div ref={wrapperRef} className="flex-1 overflow-hidden bg-gray-900 relative p-2 sm:p-4">
+      {listHeight > 0 && (
+        <List
+          height={listHeight}
+          itemCount={virtualItems.length}
+          itemSize={80}
+          width="100%"
+          outerRef={containerRef}
+          itemData={{ items: virtualItems, currentUserId, onUserClick, activeUserIds }}
+          ref={listRef}
+          onScroll={handleScroll}
+          className="overflow-x-hidden"
+        >
+          {MessageRow}
+        </List>
+      )}
+      <div ref={messagesEndRef} />
+    </div>
   );
 }
 
