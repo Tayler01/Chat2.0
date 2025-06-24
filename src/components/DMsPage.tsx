@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
-import { Smile } from 'lucide-react';
+import {
+  Search,
+  MessageSquare,
+  Send,
+  Users,
+  ArrowLeft,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
 import { Avatar } from './Avatar';
@@ -57,7 +62,7 @@ interface DMsPageProps {
   activeUserIds: string[];
 }
 
-export function DMsPage({ currentUser, onUserClick, unreadConversations = [], onConversationOpen, initialConversationId, onBackToGroupChat, activeUserIds }: DMsPageProps) {
+export function DMsPage({ currentUser, unreadConversations = [], onConversationOpen, initialConversationId, onBackToGroupChat, activeUserIds }: DMsPageProps) {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(initialConversationId);
   const [newMessage, setNewMessage] = useState('');
@@ -68,6 +73,22 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { show } = useToast();
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [showSidebar, setShowSidebar] = useState(true);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && selectedConversation) {
+      setShowSidebar(false);
+    }
+  }, [isMobile, selectedConversation]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -123,10 +144,10 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   const startConversation = useCallback(async (otherUser: User) => {
     try {
-      const user1Id = currentUser.id < otherUser.id ? currentUser.id : otherUser.id;
-      const user2Id = currentUser.id < otherUser.id ? otherUser.id : currentUser.id;
-      const user1Username = currentUser.id < otherUser.id ? currentUser.username : otherUser.username;
-      const user2Username = currentUser.id < otherUser.id ? otherUser.username : currentUser.username;
+      const user1Id =
+        currentUser.id < otherUser.id ? currentUser.id : otherUser.id;
+      const user2Id =
+        currentUser.id < otherUser.id ? otherUser.id : currentUser.id;
 
       const { data: existingConv, error: checkError } = await supabase
         .from('dms')
@@ -143,16 +164,22 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         setSelectedConversation(existingConv.id);
         setSearchQuery('');
         setSearchResults([]);
+        setShowSidebar(false);
         return;
       }
+
+      const user1Username =
+        currentUser.id < otherUser.id ? currentUser.username : otherUser.username;
+      const user2Username =
+        currentUser.id < otherUser.id ? otherUser.username : currentUser.username;
 
       const { data: newConv, error: insertError } = await supabase
         .from('dms')
         .insert({
           user1_id: user1Id,
           user2_id: user2Id,
-          user1_username,
-          user2_username
+          user1_username: user1Username,
+          user2_username: user2Username,
         })
         .select()
         .single();
@@ -168,6 +195,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       setSelectedConversation(newConv.id);
       setSearchQuery('');
       setSearchResults([]);
+      setShowSidebar(false);
     } catch (error) {
       console.error('Error starting conversation:', error);
       show('Failed to start conversation');
@@ -279,8 +307,18 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   return (
     <div className="flex h-full overflow-hidden bg-gray-900">
+      {isMobile && showSidebar && (
+        <div
+          className="fixed inset-0 bg-black/50 z-10"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
       {/* Sidebar */}
-      <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
+      <div
+        className={`w-80 bg-gray-800 border-r border-gray-700 flex flex-col transform transition-transform duration-300 ${
+          isMobile ? 'fixed inset-y-0 left-0 z-20' : ''
+        } ${isMobile && !showSidebar ? '-translate-x-full' : 'translate-x-0'}`}
+      >
         {/* Header */}
         <div className="p-4 border-b border-gray-700">
           <div className="flex items-center justify-between mb-4">
@@ -381,6 +419,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                     onClick={() => {
                       setSelectedConversation(conversation.id);
                       onConversationOpen?.(conversation.id, conversation.updated_at);
+                      setShowSidebar(false);
                     }}
                     className={`w-full flex items-center p-3 rounded-lg transition-colors mb-1 ${
                       selectedConversation === conversation.id
@@ -440,6 +479,14 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
             {/* Chat Header */}
             <div className="p-4 border-b border-gray-700 bg-gray-800">
               <div className="flex items-center">
+                {isMobile && (
+                  <button
+                    onClick={() => setShowSidebar(true)}
+                    className="mr-2 p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+                  >
+                    <Users className="w-5 h-5" />
+                  </button>
+                )}
                 <div className="relative">
                   <Avatar
                     url={undefined}
