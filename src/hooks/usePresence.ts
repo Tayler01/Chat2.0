@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { updatePresence } from '../utils/updatePresence';
 
 const INTERVAL = Number(import.meta.env.VITE_PRESENCE_INTERVAL_MS) || 30000;
 
@@ -7,13 +8,6 @@ export function usePresence() {
   const [activeUserIds, setActiveUserIds] = useState<string[]>([]);
   const intervalRef = useRef<number | null>(null);
 
-  const updatePresence = async () => {
-    try {
-      await supabase.rpc('update_user_last_active');
-    } catch (err) {
-      console.error('Failed to update last_active', err);
-    }
-  };
 
   useEffect(() => {
     updatePresence();
