@@ -54,10 +54,10 @@ export function useAuth() {
     console.log('🔄 [useAuth] Refreshing session');
     
     try {
-      // Add timeout to session refresh
+      // Add timeout to session refresh (increased to 10 seconds)
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Session refresh timeout')), 5000)
+        setTimeout(() => reject(new Error('Session refresh timeout')), 10000)
       );
       
       const { data: { session } } = await Promise.race([
@@ -96,24 +96,6 @@ export function useAuth() {
         setUser(null);
         setLoading(false);
       }
-    }
-  };
-
-  const oldRefreshSession = refreshSession;
-  
-  // Override with timeout version
-  const refreshSessionWithTimeout = async () => {
-    console.log('📋 [useAuth] Session refresh result:', {
-      hasSession: !!session,
-      userId: session?.user?.id,
-      email: session?.user?.email
-    });
-    if (session?.user) {
-      await fetchUserProfile(session.user);
-    } else {
-      console.log('❌ [useAuth] No session found during refresh');
-      setUser(null);
-      setLoading(false);
     }
   };
 
