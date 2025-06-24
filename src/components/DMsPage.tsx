@@ -32,10 +32,10 @@ interface DMConversation {
 }
 
 const normalizeConversation = (conv: unknown): DMConversation => {
-  const c = conv as Partial<DMConversation>;
+  const c = conv as Partial<DMConversation> & { messages?: unknown };
   return {
     ...(c as DMConversation),
-    messages: Array.isArray(c?.messages) ? (c.messages as DMMessage[]) : []
+    messages: Array.isArray(c.messages) ? (c.messages as DMMessage[]) : []
   };
 };
 
@@ -197,10 +197,47 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
           }
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'dm_messages' },
+        (payload) => {
+          const message = payload.new as DMMessage & { conversation_id: string };
+          const isUserInvolved = conversations.some(
+            (c) =>
+              c.id === message.conversation_id &&
+              (c.user1_id === currentUser.id || c.user2_id === currentUser.id)
+          );
+          if (!isUserInvolved) return;
+
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === message.conversation_id
+                ? {
+                    ...c,
+                    messages: [...c.messages, message],
+                    updated_at: message.created_at,
+                  }
+                : c
+            )
+          );
+
+          if (selectedConversation?.id === message.conversation_id) {
+            setSelectedConversation((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    messages: [...prev.messages, message],
+                    updated_at: message.created_at,
+                  }
+                : prev
+            );
+          }
+        }
+      )
       .subscribe();
 
     channelRef.current = channel;
-  }, [cleanupConnections, selectedConversation?.id, currentUser.id]);
+  }, [cleanupConnections, selectedConversation?.id, currentUser.id, conversations]);
 
   // Handle scroll detection to prevent auto-scroll when user is manually scrolling
   const handleScroll = useCallback(() => {
@@ -295,16 +332,14 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     async (conversationId: string) => {
       try {
         const { data, error } = await supabase
-          .from('dms')
-          .select('messages')
-          .eq('id', conversationId)
-          .single();
+          .from('dm_messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true });
 
         if (error) throw error;
 
-        const msgs = Array.isArray(data?.messages)
-          ? (data.messages as DMMessage[])
-          : [];
+        const msgs = (data || []) as DMMessage[];
 
         setConversations((prev) =>
           prev.map((c) => (c.id === conversationId ? { ...c, messages: msgs } : c))
@@ -509,7 +544,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     setIsReacting(true);
     try {
       await supabase.rpc('toggle_dm_reaction', {
-        conversation_id: selectedConversation.id,
         message_id: messageId,
         user_id: currentUser.id,
         emoji: emoji
