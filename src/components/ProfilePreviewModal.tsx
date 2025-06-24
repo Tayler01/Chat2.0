@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { AvatarImage } from './AvatarImage';
 
 interface ProfilePreviewModalProps {
   userId: string;
@@ -112,20 +113,13 @@ export function ProfilePreviewModal({ userId, onClose }: ProfilePreviewModalProp
               {/* Avatar & Basic Info */}
               <div className="flex items-end space-x-4">
                 <div className="-mt-8 sm:-mt-12 w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gray-600 ring-4 ring-gray-800 flex-shrink-0">
-                  {profile.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div 
-                      className="w-full h-full flex items-center justify-center text-white text-lg sm:text-xl font-bold"
-                      style={{ backgroundColor: profile.avatar_color }}
-                    >
-                      {profile.username.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <AvatarImage
+                    src={profile.avatar_url}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                    fallbackColor={profile.avatar_color}
+                    fallbackText={profile.username.charAt(0).toUpperCase()}
+                  />
                 </div>
                 <div className="flex-1">
                   <h2 className="text-lg sm:text-xl font-bold text-white">{profile.username}</h2>

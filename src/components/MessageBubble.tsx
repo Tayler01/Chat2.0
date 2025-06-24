@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Smile } from 'lucide-react';
+import { AvatarImage } from './AvatarImage';
 import { Message } from '../types/message';
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
@@ -82,30 +83,13 @@ export function MessageBubble({
         title={`View ${message.user_name}'s profile`}
       >
         <div className="w-full h-full rounded-full overflow-hidden">
-          {message.avatar_url ? (
-            <img
-              src={message.avatar_url}
-              alt={message.user_name}
-              className="w-full h-full rounded-full object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                const parent = e.currentTarget.parentElement;
-                if (parent) {
-                  const fallback = parent.querySelector('.avatar-fallback') as HTMLElement;
-                  if (fallback) {
-                    fallback.style.display = 'flex';
-                  }
-                }
-              }}
-            />
-          ) : (
-            message.user_name.charAt(0).toUpperCase()
-          )}
-          {message.avatar_url && (
-            <span className="avatar-fallback absolute inset-0 flex items-center justify-center text-white text-xs sm:text-sm font-medium" style={{ display: 'none' }}>
-              {message.user_name.charAt(0).toUpperCase()}
-            </span>
-          )}
+          <AvatarImage
+            src={message.avatar_url || undefined}
+            alt={message.user_name}
+            className="w-full h-full rounded-full object-cover"
+            fallbackColor={message.avatar_color}
+            fallbackText={message.user_name.charAt(0).toUpperCase()}
+          />
         </div>
         {isActive && (
           <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
