@@ -77,3 +77,19 @@ test('visibility change triggers refresh', () => {
   expect(dmSpy).toHaveBeenCalled();
   expect(presSpy).toHaveBeenCalled();
 });
+
+test('online triggers refresh', () => {
+  const authSpy = jest.spyOn(auth, 'triggerAuthRefresh').mockImplementation(() => Promise.resolve());
+  const msgSpy = jest.spyOn(messages, 'triggerMessagesRefresh').mockImplementation(() => {});
+  const dmSpy = jest.spyOn(dms, 'triggerDMsRefresh').mockImplementation(() => {});
+  const presSpy = jest.spyOn(presence, 'updatePresence').mockImplementation(() => Promise.resolve());
+
+  render(<Root />);
+
+  window.dispatchEvent(new Event('online'));
+
+  expect(authSpy).toHaveBeenCalled();
+  expect(msgSpy).toHaveBeenCalled();
+  expect(dmSpy).toHaveBeenCalled();
+  expect(presSpy).toHaveBeenCalled();
+});
