@@ -185,8 +185,8 @@ export function useMessages(userId: string | null) {
       
       console.log('Inserting message into database...');
       
-      // Simplified insert without timeout wrapper
-      const { error } = await supabase.from('messages').insert({
+      // Add timeout to database insert
+      const insertPromise = supabase.from('messages').insert({
         content,
         user_name: userName,
         user_id: userId,
@@ -194,11 +194,28 @@ export function useMessages(userId: string | null) {
         avatar_url: avatarUrl,
       });
       
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database insert timeout')), 10000)
+      );
+      
+      const { error } = await Promise.race([insertPromise, timeoutPromise]) as any;
       console.log('Insert result:', { error });
       if (error) throw error;
       
       console.log('Updating user last active...');
-      await updatePresence();
+      
+      // Add timeout for presence update
+      const presencePromise = updatePresence();
+      const presenceTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Presence update timeout')), 5000)
+      );
+      
+      try {
+        await Promise.race([presencePromise, presenceTimeoutPromise]);
+      } catch (presenceErr) {
+        console.warn('Presence update failed:', presenceErr);
+        // Don't fail the message send if presence update fails
+      }
       console.log('Presence update complete');
     };
 
@@ -211,10 +228,9 @@ export function useMessages(userId: string | null) {
       console.log('First attempt failed:', err1);
       try {
         console.log('Trying session refresh...');
-        // Reconnect realtime and refresh session
-        supabase.realtime.connect();
+        // Simple session refresh
         await supabase.auth.refreshSession();
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 100));
         console.log('Attempting second try...');
         await attempt();
         console.log('Second attempt successful');
