@@ -12,6 +12,7 @@ export function useMessages(userId: string | null) {
   const [hasMore, setHasMore] = useState(true);
 
   const oldestTimestampRef = useRef<string | null>(null);
+  const latestTimestampRef = useRef<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const updatePresence = useCallback(async () => {
@@ -39,6 +40,9 @@ export function useMessages(userId: string | null) {
 
       if (sorted.length > 0) {
         oldestTimestampRef.current = sorted[0].created_at;
+        latestTimestampRef.current = sorted[sorted.length - 1].created_at;
+      } else {
+        latestTimestampRef.current = null;
       }
 
       setHasMore((data || []).length === PAGE_SIZE);
@@ -127,6 +131,43 @@ export function useMessages(userId: string | null) {
       window.removeEventListener('focus', handleFocus);
     };
   }, [userId, refresh]);
+
+  const pollNewMessages = useCallback(async () => {
+    if (!latestTimestampRef.current) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select(
+          'id, content, user_name, user_id, avatar_color, avatar_url, created_at, reactions'
+        )
+        .gt('created_at', latestTimestampRef.current)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setMessages((prev) => [...prev, ...data]);
+        latestTimestampRef.current = data[data.length - 1].created_at;
+      }
+    } catch (err) {
+      console.error('Failed to poll new messages', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        pollNewMessages();
+      }
+    }, 15000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [userId, pollNewMessages]);
 
   const fetchOlderMessages = async () => {
     if (loadingOlder || !oldestTimestampRef.current || !hasMore) return;
