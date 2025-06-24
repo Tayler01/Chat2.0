@@ -62,6 +62,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<DMConversation | null>(null);
   const [newMessage, setNewMessage] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const draftKey = selectedConversation ? `dmDraft-${selectedConversation.id}` : 'dmDraft';
 
@@ -438,6 +439,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     if (!selectedConversation || !newMessage.trim()) return false;
 
     try {
+      // Keep the input focused so the keyboard remains open
+      inputRef.current?.focus();
       await supabase.rpc('append_dm_message', {
         conversation_id: selectedConversation.id,
         sender_id: currentUser.id,
@@ -446,6 +449,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
       setNewMessage('');
       localStorage.removeItem(draftKey);
+      // Refocus the input so the keyboard stays open
+      inputRef.current?.focus();
       await updatePresence();
       return true;
     } catch (err) {
@@ -934,6 +939,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                   <div className="relative w-full max-w-2xl min-w-0">
                     <div className="bg-gray-700/80 border border-gray-600/50 rounded-3xl px-3 sm:px-4 pr-12 sm:pr-14 py-2.5 text-white focus-within:ring-2 focus-within:ring-blue-500 shadow-lg transition-all duration-150 backdrop-blur-sm">
                       <input
+                        ref={inputRef}
                         type="text"
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
@@ -949,6 +955,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                       type="submit"
                       disabled={!newMessage.trim()}
                       className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 sm:p-2.5 rounded-full hover:scale-105 active:scale-95 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                      onMouseDown={(e) => e.preventDefault()}
                     >
                       <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>

@@ -24,11 +24,13 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
-      const success = await onSendMessage(message.trim());
+      const trimmed = message.trim();
+      // Preserve focus so the keyboard stays open while sending
+      textareaRef.current?.focus();
+      const success = await onSendMessage(trimmed);
       if (success) {
         setMessage('');
         localStorage.removeItem('groupChatDraft');
-        // Keep the textarea focused so the keyboard stays open
         textareaRef.current?.focus();
       }
     }
