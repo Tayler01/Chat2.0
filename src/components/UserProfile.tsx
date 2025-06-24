@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Palette, Save, Upload } from 'lucide-react';
+import { X, User, Mail, Palette, Save, Upload, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ChatHeader } from './ChatHeader';
+import { avatarColors } from '../utils/avatarColors';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -13,16 +14,20 @@ interface UserProfileProps {
     avatar_color: string;
   };
   onClose: () => void;
-  onUserUpdate: (updatedUser: any) => void;
+  onUserUpdate: (updatedUser: {
+    id: string;
+    email?: string;
+    username: string;
+    avatar_color: string;
+    avatar_url?: string;
+    banner_url?: string;
+    bio?: string;
+    created_at?: string;
+  }) => void;
   currentPage: PageType;
   onPageChange: (page: PageType) => void;
 }
 
-const avatarColors = [
-  '#EF4444', '#F97316', '#F59E0B', '#84CC16', 
-  '#22C55E', '#06B6D4', '#3B82F6', '#6366F1', 
-  '#8B5CF6', '#EC4899', '#F43F5E', '#64748B'
-];
 
 export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageChange }: UserProfileProps) {
   const [profileData, setProfileData] = useState({
@@ -224,18 +229,28 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 relative">
       {/* Same header as main page */}
-      <ChatHeader 
+      <ChatHeader
         userName={user.username}
-        onClearUser={() => {}} // Empty function since we don't want to sign out from profile  
+        onClearUser={() => {}} // Empty function since we don't want to sign out from profile
         onShowProfile={() => {}} // Empty function since we're already on profile
         currentPage={currentPage}
         onPageChange={onPageChange} // Allow navigation to other pages
       />
 
+      {/* Back button */}
+      <div className="absolute top-4 left-4 z-10">
+        <button
+          onClick={onClose}
+          className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+      </div>
+
       {/* Main content with grid layout */}
-      <div className="h-[calc(100vh-5rem)] overflow-hidden">
+      <div className="h-screen overflow-hidden">
         <div className="flex justify-start px-4 sm:px-8 lg:px-16 py-4 sm:py-6 h-full">
           
           {/* Profile Card - Left side */}

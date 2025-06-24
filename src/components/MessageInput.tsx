@@ -15,6 +15,8 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
     if (message.trim() && !disabled) {
       onSendMessage(message.trim());
       setMessage('');
+      // Keep the textarea focused so the keyboard stays open
+      textareaRef.current?.focus();
     }
   };
 

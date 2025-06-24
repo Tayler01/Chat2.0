@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
+import { Smile } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useToast } from './Toast';
 
 interface User {
   id: string;
@@ -15,6 +17,7 @@ interface DMMessage {
   sender_id: string;
   content: string;
   created_at: string;
+  reactions?: Record<string, string[]>;
 }
 
 interface DMConversation {
@@ -27,6 +30,14 @@ interface DMConversation {
   updated_at: string;
 }
 
+const normalizeConversation = (conv: unknown): DMConversation => {
+  const c = conv as Partial<DMConversation>;
+  return {
+    ...(c as DMConversation),
+    messages: Array.isArray(c?.messages) ? (c.messages as DMMessage[]) : []
+  };
+};
+
 interface DMsPageProps {
   currentUser: {
     id: string;
@@ -35,9 +46,17 @@ interface DMsPageProps {
     avatar_url?: string;
   };
   onUserClick?: (userId: string) => void;
+  unreadConversations?: string[];
+  onConversationOpen?: (
+    id: string,
+    lastTimestamp: string
+  ) => void;
+  initialConversationId?: string | null;
+  onBackToGroupChat?: () => void;
+  activeUserIds: string[];
 }
 
-export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
+export function DMsPage({ currentUser, onUserClick, unreadConversations = [], onConversationOpen, initialConversationId, onBackToGroupChat, activeUserIds }: DMsPageProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<DMConversation | null>(null);
@@ -48,27 +67,83 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
   const [currentUserData, setCurrentUserData] = useState<User | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isUserScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoadingMoreRef = useRef(false);
+  const hasAutoScrolledRef = useRef(false);
+  const DM_PAGE_SIZE = 20;
+  const [messageLimit, setMessageLimit] = useState(DM_PAGE_SIZE);
+  const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
+  const [isReacting, setIsReacting] = useState(false);
+  const { show } = useToast();
+  const updatePresence = async () => {
+    try {
+      await supabase.rpc('update_user_last_active');
+    } catch (err) {
+      console.error('Failed to update presence', err);
+    }
+  };
 
-  useEffect(() => {
-    fetchCurrentUserData();
-    fetchUsers();
-    fetchConversations();
-    
-    setupRealtimeSubscription();
+  const getConversationWithUser = useCallback(
+    (userId: string) =>
+      conversations.find(
+        (c) =>
+          (c.user1_id === currentUser.id && c.user2_id === userId) ||
+          (c.user2_id === currentUser.id && c.user1_id === userId)
+      ) || null,
+    [conversations, currentUser.id]
+  );
 
-    return () => {
-      cleanupConnections();
-    };
-  }, [selectedConversation?.id]);
+  const sortedConversations = useMemo(() => {
+    return [...conversations].sort((a, b) => {
+      const aUnread = unreadConversations.includes(a.id);
+      const bUnread = unreadConversations.includes(b.id);
+      if (aUnread && !bUnread) return -1;
+      if (!aUnread && bUnread) return 1;
+      return (
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+    });
+  }, [conversations, unreadConversations]);
 
-  const cleanupConnections = () => {
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => {
+      const convA = getConversationWithUser(a.id);
+      const convB = getConversationWithUser(b.id);
+      const aUnread = convA ? unreadConversations.includes(convA.id) : false;
+      const bUnread = convB ? unreadConversations.includes(convB.id) : false;
+      if (aUnread && !bUnread) return -1;
+      if (!aUnread && bUnread) return 1;
+      return a.username.localeCompare(b.username);
+    });
+  }, [users, unreadConversations, getConversationWithUser]);
+
+  const displayedMessages = useMemo(() => {
+    if (!selectedConversation) return [] as DMMessage[];
+    const msgs = selectedConversation.messages || [];
+    const start = Math.max(0, msgs.length - messageLimit);
+    return msgs.slice(start);
+  }, [selectedConversation, messageLimit]);
+
+  const latestMessageByUser = useMemo(() => {
+    const map = new Map<string, string>();
+    if (selectedConversation) {
+      (selectedConversation.messages || []).forEach((m) => {
+        map.set(m.sender_id, m.id);
+      });
+    }
+    return map;
+  }, [selectedConversation?.messages]);
+
+  const cleanupConnections = useCallback(() => {
     if (channelRef.current) {
       channelRef.current.unsubscribe();
       channelRef.current = null;
     }
-  };
+  }, []);
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useCallback(() => {
     cleanupConnections();
 
     const channel = supabase
@@ -78,7 +153,14 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
         { event: '*', schema: 'public', table: 'dms' },
         (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const updatedConversation = payload.new as DMConversation;
+            const updatedConversation = normalizeConversation(payload.new);
+            
+            // Check if this conversation involves the current user
+            const isUserInvolved = updatedConversation.user1_id === currentUser.id || 
+                                 updatedConversation.user2_id === currentUser.id;
+            
+            if (!isUserInvolved) return;
+            
             setConversations(prev => {
               const existingIndex = prev.findIndex(conv => conv.id === updatedConversation.id);
               if (existingIndex >= 0) {
@@ -89,7 +171,7 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                 return [updatedConversation, ...prev];
               }
             });
-            
+
             // Update selected conversation if it's the same one
             if (selectedConversation?.id === updatedConversation.id) {
               setSelectedConversation(updatedConversation);
@@ -100,17 +182,45 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
       .subscribe();
 
     channelRef.current = channel;
-  };
+  }, [cleanupConnections, selectedConversation?.id, currentUser.id]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [selectedConversation?.messages]);
+  // Handle scroll detection to prevent auto-scroll when user is manually scrolling
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !selectedConversation) return;
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+    isUserScrollingRef.current = true;
 
-  const fetchCurrentUserData = async () => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    scrollTimeoutRef.current = setTimeout(() => {
+      isUserScrollingRef.current = false;
+    }, 1000);
+
+    if (
+      container.scrollTop === 0 &&
+      messageLimit < selectedConversation.messages.length &&
+      !isLoadingMoreRef.current
+    ) {
+      const previousHeight = container.scrollHeight;
+      isLoadingMoreRef.current = true;
+      setMessageLimit((limit) =>
+        Math.min(limit + DM_PAGE_SIZE, selectedConversation.messages.length)
+      );
+
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          const newHeight = container.scrollHeight;
+          container.scrollTop = newHeight - previousHeight;
+          isLoadingMoreRef.current = false;
+        });
+      }, 100);
+    }
+  }, [messageLimit, selectedConversation]);
+
+  const fetchCurrentUserData = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('users')
@@ -123,9 +233,9 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
     } catch (err) {
       console.error('Error fetching current user data:', err);
     }
-  };
+  }, [currentUser.id]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('users')
@@ -135,15 +245,16 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
 
       if (error) throw error;
       setUsers(data || []);
+      await updatePresence();
     } catch (err) {
       console.error('Error fetching users:', err);
     }
-  };
+  }, [currentUser.id]);
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const { data, error } = await supabase
         .from('dms')
         .select('*')
@@ -151,13 +262,119 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      setConversations(data || []);
+      setConversations((data || []).map(normalizeConversation));
+      await updatePresence();
     } catch (err) {
       console.error('Error fetching conversations:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser.id]);
+
+  useEffect(() => {
+    if (initialConversationId && conversations.length > 0 && !selectedConversation) {
+      const conv = conversations.find(c => c.id === initialConversationId);
+      if (conv) {
+        const normalized = normalizeConversation(conv);
+        setSelectedConversation(normalized);
+        setMessageLimit(Math.min(DM_PAGE_SIZE, normalized.messages.length));
+        hasAutoScrolledRef.current = false;
+        if (onConversationOpen) {
+          onConversationOpen(normalized.id, normalized.updated_at);
+        }
+      }
+    }
+  }, [initialConversationId, conversations, selectedConversation, onConversationOpen]);
+
+  useEffect(() => {
+    fetchCurrentUserData();
+    fetchUsers();
+    fetchConversations();
+
+    setupRealtimeSubscription();
+
+    return () => {
+      cleanupConnections();
+    };
+  }, [
+    selectedConversation?.id,
+    fetchCurrentUserData,
+    fetchUsers,
+    fetchConversations,
+    setupRealtimeSubscription,
+    cleanupConnections
+  ]);
+
+  // Refresh users and conversations when the page regains focus or becomes
+  // visible. This helps recover if the tab was idle for a while.
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchUsers();
+      fetchConversations();
+      updatePresence();
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        handleRefresh();
+      }
+    };
+
+    window.addEventListener('focus', handleRefresh);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('focus', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [fetchUsers, fetchConversations]);
+
+  useEffect(() => {
+    if (!selectedConversation) return;
+    setMessageLimit((limit) =>
+      Math.min(
+        Math.max(limit, DM_PAGE_SIZE),
+        selectedConversation.messages.length
+      )
+    );
+  }, [selectedConversation?.messages.length]);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !selectedConversation) return;
+
+    const isNearBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+
+    if (!hasAutoScrolledRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      hasAutoScrolledRef.current = true;
+    } else if (isNearBottom && !isUserScrollingRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    if (onConversationOpen && selectedConversation.messages.length > 0) {
+      onConversationOpen(
+        selectedConversation.id,
+        selectedConversation.updated_at
+      );
+    }
+    updatePresence();
+  }, [selectedConversation?.messages, messageLimit, selectedConversation, onConversationOpen]);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [handleScroll]);
+
 
   const startConversation = async (user: User) => {
     try {
@@ -180,14 +397,21 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
 
       if (fetchError) throw fetchError;
 
-      setSelectedConversation(conversation);
+      const normalized = normalizeConversation(conversation);
+      setSelectedConversation(normalized);
+      setMessageLimit(Math.min(DM_PAGE_SIZE, normalized.messages.length));
+      hasAutoScrolledRef.current = false;
+      if (onConversationOpen) {
+        onConversationOpen(normalized.id, normalized.updated_at);
+      }
       
       // Add to conversations if not already there
       setConversations(prev => {
-        const exists = prev.find(conv => conv.id === conversation.id);
+        const exists = prev.find(conv => conv.id === normalized.id);
         if (exists) return prev;
-        return [conversation, ...prev];
+        return [normalized, ...prev];
       });
+      await updatePresence();
     } catch (err) {
       console.error('Error starting conversation:', err);
     }
@@ -204,9 +428,43 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
       });
 
       setNewMessage('');
+      await updatePresence();
     } catch (err) {
       console.error('Error sending message:', err);
     }
+  };
+
+  const handleDMReaction = async (messageId: string, emoji: string) => {
+    if (!selectedConversation || !currentUser.id || isReacting) return;
+
+    setIsReacting(true);
+    try {
+      await supabase.rpc('toggle_dm_reaction', {
+        conversation_id: selectedConversation.id,
+        message_id: messageId,
+        user_id: currentUser.id,
+        emoji: emoji
+      });
+      setShowReactionPicker(null);
+    } catch (error) {
+      console.error('Error toggling DM reaction:', error);
+      // Show user-friendly error message
+      show('Failed to add reaction. Please try again.');
+    } finally {
+      setIsReacting(false);
+    }
+  };
+
+  const getReactionCount = (reactions: Record<string, string[]> | undefined, emoji: string) => {
+    if (!reactions) return 0;
+    const users = reactions[emoji] || [];
+    return Array.isArray(users) ? users.length : 0;
+  };
+
+  const hasUserReacted = (reactions: Record<string, string[]> | undefined, emoji: string) => {
+    if (!reactions) return false;
+    const users = reactions[emoji] || [];
+    return Array.isArray(users) && users.includes(currentUser.id);
   };
 
   const getOtherUser = (conversation: DMConversation) => {
@@ -232,35 +490,36 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
     };
   };
 
-  const filteredUsers = users.filter(user =>
-    user.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredConversations = conversations.filter(conv => {
-    const otherUser = getOtherUser(conv);
-    return otherUser.username.toLowerCase().includes(searchQuery.toLowerCase());
-  });
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
+
   return (
-    <div className="h-[calc(100vh-5rem)] overflow-hidden bg-gray-900">
-      <div className="flex px-2 sm:px-8 lg:px-16 py-2 sm:py-6 h-full gap-2 sm:gap-6 relative">
+    <div className="h-screen md:h-screen overflow-hidden bg-gray-900">
+      <div className="flex px-2 sm:px-8 lg:px-16 py-2 sm:py-6 h-full gap-2 sm:gap-6 relative min-h-0">
         {/* Contacts Sidebar */}
         <div className={`${
           selectedConversation ? 'hidden md:flex' : 'flex'
         } w-full md:w-80 bg-gray-800 rounded-xl border border-gray-600/50 shadow-xl flex-col overflow-hidden`}>
           {/* Search */}
           <div className="p-4 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border-b border-gray-600/50 backdrop-blur-sm">
-            <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-emerald-400" />
-              Contacts
-            </h2>
+            <div className="flex items-center mb-3">
+              <button
+                onClick={() => onBackToGroupChat?.()}
+                className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded-xl transition-colors mr-3"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-emerald-400" />
+                Contacts
+              </h2>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -310,11 +569,11 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                 {/* Recent Conversations Tab */}
                 {activeTab === 'recent' && (
                   <div className="p-3">
-                    {conversations.filter(conv => {
+                    {sortedConversations.filter(conv => {
                       const otherUser = getOtherUser(conv);
                       return otherUser.username.toLowerCase().includes(searchQuery.toLowerCase());
                     }).length > 0 ? (
-                      conversations.filter(conv => {
+                      sortedConversations.filter(conv => {
                         const otherUser = getOtherUser(conv);
                         return otherUser.username.toLowerCase().includes(searchQuery.toLowerCase());
                       }).map(conversation => {
@@ -326,31 +585,47 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                             key={conversation.id}
                             onClick={() => {
                               setSelectedConversation(conversation);
+                              setMessageLimit(Math.min(DM_PAGE_SIZE, conversation.messages.length));
+                              hasAutoScrolledRef.current = false;
+                              if (onConversationOpen) {
+                                onConversationOpen(
+                                  conversation.id,
+                                  conversation.updated_at
+                                );
+                              }
                             }}
                             className={`w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30 ${
                               selectedConversation?.id === conversation.id ? 'bg-gray-700/60 border-emerald-500/30' : ''
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-600/30">
-                                {otherUserData.avatar_url ? (
-                                  <img
-                                    src={otherUserData.avatar_url}
-                                    alt={otherUserData.username}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div 
-                                    className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                                    style={{ backgroundColor: otherUserData.avatar_color }}
-                                  >
-                                    {otherUserData.username.charAt(0).toUpperCase()}
-                                  </div>
+                              <div className="relative w-10 h-10 flex-shrink-0 ring-2 ring-gray-600/30 rounded-full">
+                                <div className="w-full h-full rounded-full overflow-hidden">
+                                  {otherUserData.avatar_url ? (
+                                    <img
+                                      src={otherUserData.avatar_url}
+                                      alt={otherUserData.username}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div
+                                      className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
+                                      style={{ backgroundColor: otherUserData.avatar_color }}
+                                    >
+                                      {otherUserData.username.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                </div>
+                                {activeUserIds.includes(otherUserData.id) && (
+                                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-white font-medium truncate">
+                                <p className="text-white font-medium truncate flex items-center gap-1">
                                   {otherUserData.username}
+                                  {unreadConversations.includes(conversation.id) && (
+                                    <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-1" />
+                                  )}
                                 </p>
                                 {lastMessage && (
                                   <p className="text-sm text-gray-400 truncate">
@@ -358,6 +633,9 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                                   </p>
                                 )}
                               </div>
+                              {unreadConversations.includes(conversation.id) && (
+                                <div className="flex-shrink-0 w-2 h-2 bg-red-500 rounded-full" />
+                              )}
                             </div>
                           </button>
                         );
@@ -375,10 +653,10 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                 {/* All Users Tab */}
                 {activeTab === 'all' && (
                   <div className="p-3">
-                    {users.filter(user =>
+                    {sortedUsers.filter(user =>
                       user.username.toLowerCase().includes(searchQuery.toLowerCase())
                     ).length > 0 ? (
-                      users.filter(user =>
+                      sortedUsers.filter(user =>
                         user.username.toLowerCase().includes(searchQuery.toLowerCase())
                       ).map(user => (
                         <button
@@ -389,24 +667,37 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                           className="w-full p-3 text-left hover:bg-gray-700/60 rounded-xl transition-all duration-200 mb-2 border border-transparent hover:border-gray-600/30"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-600/30">
-                              {user.avatar_url ? (
-                                <img
-                                  src={user.avatar_url}
-                                  alt={user.username}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div 
-                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                                  style={{ backgroundColor: user.avatar_color }}
-                                >
-                                  {user.username.charAt(0).toUpperCase()}
-                                </div>
+                            <div className="relative w-10 h-10 flex-shrink-0 ring-2 ring-gray-600/30 rounded-full">
+                              <div className="w-full h-full rounded-full overflow-hidden">
+                                {user.avatar_url ? (
+                                  <img
+                                    src={user.avatar_url}
+                                    alt={user.username}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div
+                                    className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
+                                    style={{ backgroundColor: user.avatar_color }}
+                                  >
+                                    {user.username.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                              {activeUserIds.includes(user.id) && (
+                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-white font-medium truncate">{user.username}</p>
+                              <p className="text-white font-medium truncate flex items-center gap-1">
+                                {user.username}
+                                {(() => {
+                                  const conv = getConversationWithUser(user.id);
+                                  return conv && unreadConversations.includes(conv.id) ? (
+                                    <span className="w-2 h-2 bg-red-500 rounded-full" />
+                                  ) : null;
+                                })()}
+                              </p>
                             </div>
                           </div>
                         </button>
@@ -427,8 +718,8 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
         {/* Chat Area */}
         <div className={`${
           selectedConversation ? 'flex' : 'hidden md:flex'
-        } flex-1 bg-gray-800 rounded-xl border border-gray-600/50 shadow-xl flex-col overflow-hidden ${
-          selectedConversation ? 'absolute md:relative inset-0 md:inset-auto z-10 md:z-auto' : ''
+        } flex-1 bg-gray-800 rounded-xl border border-gray-600/50 shadow-xl flex-col overflow-hidden min-h-0 ${
+          selectedConversation ? 'fixed md:relative inset-0 md:inset-auto z-10 md:z-auto h-screen w-screen md:h-full md:w-full' : ''
         }`}>
           {selectedConversation ? (
             <>
@@ -436,7 +727,9 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
               <div className="p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-gray-600/50 flex items-center justify-between backdrop-blur-sm">
                 {/* Mobile back button */}
                 <button
-                  onClick={() => setSelectedConversation(null)}
+                  onClick={() => {
+                    setSelectedConversation(null);
+                  }}
                   className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded-xl transition-colors mr-3"
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -447,22 +740,27 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                     const otherUserData = getOtherUserData(selectedConversation);
                     return (
                       <>
-                        <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-blue-400/30">
-                          {otherUserData.avatar_url ? (
-                            <img
-                              src={otherUserData.avatar_url}
-                              alt={otherUserData.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div 
-                              className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                              style={{ backgroundColor: otherUserData.avatar_color }}
-                            >
-                              {otherUserData.username.charAt(0).toUpperCase()}
+                          <div className="relative w-10 h-10 ring-2 ring-blue-400/30 rounded-full">
+                            <div className="w-full h-full rounded-full overflow-hidden">
+                              {otherUserData.avatar_url ? (
+                                <img
+                                  src={otherUserData.avatar_url}
+                                  alt={otherUserData.username}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
+                                  style={{ backgroundColor: otherUserData.avatar_color }}
+                                >
+                                  {otherUserData.username.charAt(0).toUpperCase()}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
+                            {activeUserIds.includes(otherUserData.id) && (
+                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
+                            )}
+                          </div>
                         <div>
                           <h3 className="text-lg font-semibold text-white">
                             {otherUserData.username}
@@ -482,8 +780,11 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {selectedConversation.messages.length === 0 ? (
+              <div 
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto p-4 space-y-4"
+              >
+                {displayedMessages.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-center">
                     <div>
                       <MessageSquare className="w-12 h-12 text-gray-500 mx-auto mb-4" />
@@ -494,64 +795,130 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                     </div>
                   </div>
                 ) : (
-                  selectedConversation.messages.map(message => (
-                    <div
+                  displayedMessages.map(message => (
+                    <div 
                       key={message.id}
                       className={`flex gap-3 ${
                         message.sender_id === currentUser.id ? 'flex-row-reverse' : ''
                       }`}
                     >
-                      <button
-                        className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
-                        onClick={() => {
-                          onUserClick?.(message.sender_id);
-                        }}
-                        title={`View ${message.sender_id === currentUser.id ? currentUser.username : getOtherUser(selectedConversation).username}'s profile`}
-                      >
-                        {message.sender_id === currentUser.id ? (
-                          currentUserData?.avatar_url ? (
-                            <img
-                              src={currentUserData.avatar_url}
-                              alt={currentUser.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div 
-                              className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                              style={{ backgroundColor: currentUserData?.avatar_color || currentUser.avatar_color }}
-                            >
-                              {currentUser.username.charAt(0).toUpperCase()}
-                            </div>
-                          )
-                        ) : (() => {
-                          const otherUserData = getOtherUserData(selectedConversation);
-                          return otherUserData.avatar_url ? (
-                            <img
-                              src={otherUserData.avatar_url}
-                              alt={otherUserData.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div 
-                              className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                              style={{ backgroundColor: otherUserData.avatar_color }}
-                            >
-                              {otherUserData.username.charAt(0).toUpperCase()}
-                            </div>
-                          );
-                        })()}
-                      </button>
+                        <button
+                          className="relative w-8 h-8 flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer rounded-full"
+                          onClick={() => {
+                            onUserClick?.(message.sender_id);
+                          }}
+                          title={`View ${message.sender_id === currentUser.id ? currentUser.username : getOtherUser(selectedConversation).username}'s profile`}
+                        >
+                          <div className="w-full h-full rounded-full overflow-hidden">
+                            {message.sender_id === currentUser.id ? (
+                              currentUserData?.avatar_url ? (
+                                <img
+                                  src={currentUserData.avatar_url}
+                                  alt={currentUser.username}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
+                                  style={{ backgroundColor: currentUserData?.avatar_color || currentUser.avatar_color }}
+                                >
+                                  {currentUser.username.charAt(0).toUpperCase()}
+                                </div>
+                              )
+                            ) : (() => {
+                              const otherUserData = getOtherUserData(selectedConversation);
+                              return otherUserData.avatar_url ? (
+                                <img
+                                  src={otherUserData.avatar_url}
+                                  alt={otherUserData.username}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
+                                  style={{ backgroundColor: otherUserData.avatar_color }}
+                                >
+                                  {otherUserData.username.charAt(0).toUpperCase()}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          {activeUserIds.includes(message.sender_id) &&
+                            latestMessageByUser.get(message.sender_id) === message.id && (
+                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
+                            )}
+                        </button>
                       
-                      <div className={`flex flex-col max-w-xs sm:max-w-md ${
+                      <div className={`flex flex-col max-w-xs sm:max-w-md relative ${
                         message.sender_id === currentUser.id ? 'items-end' : 'items-start'
                       }`}>
-                        <div className={`px-4 py-2 rounded-2xl ${
-                          message.sender_id === currentUser.id
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-br-md shadow-lg border border-blue-500/20'
-                            : 'bg-gray-700 text-gray-100 rounded-bl-md shadow-lg border border-gray-600/50'
-                        }`}>
-                          <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                        <div className="relative">
+                          <div className={`px-4 py-2 rounded-2xl group ${
+                            message.sender_id === currentUser.id
+                              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-br-md shadow-lg border border-blue-500/20'
+                              : 'bg-gray-700 text-gray-100 rounded-bl-md shadow-lg border border-gray-600/50'
+                          }`}>
+                            <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                            
+                            {/* Reaction button */}
+                            <button
+                              onClick={() => setShowReactionPicker(showReactionPicker === message.id ? null : message.id)}
+                              className={`absolute -bottom-2 ${message.sender_id === currentUser.id ? 'left-2' : 'right-2'} opacity-0 group-hover:opacity-100 transition-opacity bg-gray-600 hover:bg-gray-500 rounded-full p-1 shadow-lg`}
+                              title="Add reaction"
+                            >
+                              <Smile className="w-3 h-3 text-gray-200" />
+                            </button>
+                          </div>
+
+                          {/* Reaction picker */}
+                          {showReactionPicker === message.id && (
+                            <div
+                              className={`absolute z-20 mt-1 ${message.sender_id === currentUser.id ? 'right-0' : 'left-0'} bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 flex gap-1 shadow-xl`}
+                            >
+                              {['❤️', '👍', '😂', '😮', '😢', '😡'].map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  onClick={() => handleDMReaction(message.id, emoji)}
+                                  disabled={isReacting}
+                                  className="hover:scale-110 transition-transform p-1 hover:bg-gray-700 rounded disabled:opacity-50"
+                                  title={`React with ${emoji}`}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Existing reactions */}
+                          {message.reactions && Object.keys(message.reactions).length > 0 && (
+                            <div className={`flex flex-wrap gap-1 mt-1 ${message.sender_id === currentUser.id ? 'justify-end' : 'justify-start'}`}>
+                              {Object.entries(message.reactions).map(([emoji, users]) => {
+                                const count = getReactionCount(message.reactions, emoji);
+                                const userReacted = hasUserReacted(message.reactions, emoji);
+                                
+                                if (count === 0) return null;
+                                
+                                return (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => handleDMReaction(message.id, emoji)}
+                                    disabled={isReacting}
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all hover:scale-105 disabled:opacity-50 ${
+                                      userReacted
+                                        ? 'bg-blue-600 text-white border border-blue-500'
+                                        : 'bg-gray-600 text-gray-200 border border-gray-500 hover:bg-gray-500'
+                                    }`}
+                                    title={`${users.length} reaction${users.length !== 1 ? 's' : ''}`}
+                                  >
+                                    <span>{emoji}</span>
+                                    <span className="font-medium">{count}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
+                        
                         <span className="text-xs text-gray-400 mt-1">
                           {formatTime(message.created_at)}
                         </span>
@@ -561,6 +928,14 @@ export function DMsPage({ currentUser, onUserClick }: DMsPageProps) {
                 )}
                 <div ref={messagesEndRef} />
               </div>
+
+              {/* Click outside to close reaction picker */}
+              {showReactionPicker && (
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setShowReactionPicker(null)}
+                />
+              )}
 
               {/* Message Input */}
               <div className="p-3 sm:p-4 border-t border-gray-600/50 bg-gray-800/50 safe-area-inset-bottom">
