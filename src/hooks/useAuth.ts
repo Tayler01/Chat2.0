@@ -54,16 +54,7 @@ export function useAuth() {
     console.log('🔄 [useAuth] Refreshing session');
     
     try {
-      // Add timeout to session refresh (increased to 10 seconds)
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Session refresh timeout')), 10000)
-      );
-      
-      const { data: { session } } = await Promise.race([
-        sessionPromise,
-        timeoutPromise
-      ]) as any;
+      const { data: { session } } = await supabase.auth.getSession();
       
       console.log('📋 [useAuth] Session refresh result:', {
         hasSession: !!session,
@@ -80,22 +71,9 @@ export function useAuth() {
       }
     } catch (refreshErr) {
       console.error('❌ [useAuth] Session refresh failed or timed out:', refreshErr);
-      // Try to recover by forcing a new auth state check
-      try {
-        console.log('🔄 [useAuth] Attempting auth recovery');
-        await supabase.auth.refreshSession();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          await fetchUserProfile(session.user);
-        } else {
-          setUser(null);
-          setLoading(false);
-        }
-      } catch (recoveryErr) {
-        console.error('💥 [useAuth] Auth recovery failed:', recoveryErr);
-        setUser(null);
-        setLoading(false);
-      }
+      // Don't try to recover, just set loading to false
+      console.log('⚠️ [useAuth] Setting loading to false due to refresh error');
+      setLoading(false);
     }
   };
 
