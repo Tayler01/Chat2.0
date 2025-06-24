@@ -418,40 +418,55 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   const sendMessage = async (): Promise<boolean> => {
     if (!selectedConversation || !newMessage.trim()) return false;
+    
+    console.log('DM sendMessage called with:', { conversationId: selectedConversation.id, message: newMessage.trim() });
 
     const attempt = async () => {
+      console.log('Starting DM attempt...');
       // Check session right before the attempt
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('DM Session check result:', { session: !!session, sessionError });
       if (sessionError || !session) {
         throw new Error('Session expired');
       }
       
+      console.log('Calling append_dm_message RPC...');
       await supabase.rpc('append_dm_message', {
         conversation_id: selectedConversation.id,
         sender_id: currentUser.id,
         message_text: newMessage.trim()
       });
+      console.log('DM RPC call complete');
+      console.log('Updating DM presence...');
       await updatePresence();
+      console.log('DM presence update complete');
     };
 
     try {
+      console.log('Attempting DM first try...');
       await attempt();
+      console.log('DM first attempt successful');
       return true;
     } catch (err1) {
       console.log('DM send first attempt failed:', err1);
       try {
+        console.log('Trying DM session refresh...');
         // Try refreshing session
         await supabase.auth.refreshSession();
         await new Promise((r) => setTimeout(r, 200));
+        console.log('Attempting DM second try...');
         await attempt();
+        console.log('DM second attempt successful');
         return true;
       } catch (err2) {
         console.log('DM send second attempt failed:', err2);
         try {
+          console.log('Trying DM full session reset...');
           // Force sign out and back in to get fresh session
           const currentSession = await supabase.auth.getSession();
           if (currentSession.data.session) {
             const refreshToken = currentSession.data.session.refresh_token;
+            console.log('DM Signing out and back in...');
             await supabase.auth.signOut();
             await new Promise((r) => setTimeout(r, 100));
             
@@ -461,13 +476,17 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
             });
             
             if (error || !data.session) {
+              console.log('DM Session restore failed:', error);
               console.error('Session expired. Please sign in again.');
               return false;
             }
             
+            console.log('DM Session restored, waiting...');
             await new Promise((r) => setTimeout(r, 300));
           }
+          console.log('Attempting DM final try...');
           await attempt();
+          console.log('DM final attempt successful');
           return true;
         } catch (err3) {
           console.log('DM send final attempt failed:', err3);
