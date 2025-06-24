@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Smile } from 'lucide-react';
 import { Message } from '../types/message';
 import { supabase } from '../lib/supabase';
@@ -15,7 +15,7 @@ interface MessageBubbleProps {
   showActiveDot?: boolean;
 }
 
-export function MessageBubble({
+function MessageBubbleComponent({
   message,
   isOwnMessage,
   onUserClick,
@@ -29,35 +29,49 @@ export function MessageBubble({
   const { show } = useToast();
   const isActive = showActiveDot && activeUserIds.includes(message.user_id);
 
-  const formatTime = (timestamp: string) => {
+  const handleUserClick = useCallback(() => {
+    onUserClick?.(message.user_id);
+  }, [onUserClick, message.user_id]);
+
+  const togglePicker = useCallback(() => {
+    setShowPicker((prev) => !prev);
+  }, []);
+
+  const closePicker = useCallback(() => {
+    setShowPicker(false);
+  }, []);
+
+  const formatTime = useCallback((timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
-  };
+  }, []);
 
   const reactions = message.reactions || {};
   const emojis = ['❤️', '👍', '😂', '😮', '😢', '😡'];
 
-  const handleReaction = async (emoji: string) => {
-    if (!currentUserId || isReacting) return;
-
-    setIsReacting(true);
-    try {
-      await supabase.rpc('toggle_message_reaction', {
-        message_id: message.id,
-        user_id: currentUserId,
-        emoji: emoji
-      });
-      setShowPicker(false);
-    } catch (error) {
-      console.error('Error toggling reaction:', error);
-      // Show user-friendly error message
-      show('Failed to add reaction. Please try again.');
-    } finally {
-      setIsReacting(false);
-    }
-  };
+  const handleReaction = useCallback(
+    async (emoji: string) => {
+      if (!currentUserId || isReacting) return;
+      setIsReacting(true);
+      try {
+        await supabase.rpc('toggle_message_reaction', {
+          message_id: message.id,
+          user_id: currentUserId,
+          emoji,
+        });
+        setShowPicker(false);
+      } catch (error) {
+        console.error('Error toggling reaction:', error);
+        // Show user-friendly error message
+        show('Failed to add reaction. Please try again.');
+      } finally {
+        setIsReacting(false);
+      }
+    },
+    [currentUserId, isReacting, message.id, show],
+  );
 
   const getReactionCount = (emoji: string) => {
     const users = reactions[emoji] || [];
@@ -77,7 +91,7 @@ export function MessageBubble({
   return (
     <div className={`flex gap-2 sm:gap-3 mb-3 sm:mb-4 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
       <button
-        onClick={() => onUserClick?.(message.user_id)}
+        onClick={handleUserClick}
         className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-medium flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer relative"
         style={{ backgroundColor: message.avatar_color }}
         title={`View ${message.user_name}'s profile`}
@@ -108,7 +122,7 @@ export function MessageBubble({
             
             {/* Reaction button */}
             <button
-              onClick={() => setShowPicker(!showPicker)}
+              onClick={togglePicker}
               className={`absolute -bottom-2 ${isOwnMessage ? 'left-2' : 'right-2'} opacity-0 group-hover:opacity-100 transition-opacity bg-gray-600 hover:bg-gray-500 rounded-full p-1 shadow-lg`}
               title="Add reaction"
             >
@@ -183,11 +197,13 @@ export function MessageBubble({
 
       {/* Click outside to close picker */}
       {showPicker && (
-        <div 
-          className="fixed inset-0 z-10" 
-          onClick={() => setShowPicker(false)}
+        <div
+          className="fixed inset-0 z-10"
+          onClick={closePicker}
         />
       )}
     </div>
   );
 }
+
+export const MessageBubble = React.memo(MessageBubbleComponent);
