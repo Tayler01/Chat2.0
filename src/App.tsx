@@ -40,6 +40,7 @@ function App() {
     sendMessage,
     fetchOlderMessages,
     hasMore,
+    loadingOlder,
   } = useMessages(user?.id ?? null);
 
   const activeUserIds = usePresence();
@@ -171,6 +172,7 @@ function App() {
         onRetry={() => window.location.reload()}
         fetchOlderMessages={fetchOlderMessages}
         hasMore={hasMore}
+        loadingOlder={loadingOlder}
         onUserClick={handleUserClick}
         activeUserIds={activeUserIds}
       />
