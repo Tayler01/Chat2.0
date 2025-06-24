@@ -178,70 +178,38 @@ export function useMessages(userId: string | null) {
     avatarColor: string,
     avatarUrl?: string | null
   ): Promise<boolean> => {
-    console.log('sendMessage called with:', { content, userName, userId, avatarColor });
-    
     const attempt = async () => {
-      console.log('Starting attempt...');
-      
-      console.log('Inserting message into database...');
-      
-      // Add timeout to database insert
-      const insertPromise = supabase.from('messages').insert({
+      const { error } = await supabase.from('messages').insert({
         content,
         user_name: userName,
         user_id: userId,
         avatar_color: avatarColor,
         avatar_url: avatarUrl,
       });
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database insert timeout')), 10000)
-      );
-      
-      const { error } = await Promise.race([insertPromise, timeoutPromise]) as any;
-      console.log('Insert result:', { error });
       if (error) throw error;
-      
-      console.log('Updating user last active...');
-      
-      // Add timeout for presence update
-      const presencePromise = updatePresence();
-      const presenceTimeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Presence update timeout')), 5000)
-      );
-      
-      try {
-        await Promise.race([presencePromise, presenceTimeoutPromise]);
-      } catch (presenceErr) {
-        console.warn('Presence update failed:', presenceErr);
-        // Don't fail the message send if presence update fails
-      }
-      console.log('Presence update complete');
+      await supabase.rpc('update_user_last_active');
     };
 
     try {
-      console.log('Attempting first try...');
       await attempt();
-      console.log('First attempt successful');
       return true;
     } catch (err1) {
-      console.log('First attempt failed:', err1);
       try {
-        console.log('Trying session refresh...');
-        // Simple session refresh
-        await supabase.auth.refreshSession();
-        await new Promise((r) => setTimeout(r, 100));
-        console.log('Attempting second try...');
+        supabase.realtime.connect();
+        await new Promise((r) => setTimeout(r, 500));
         await attempt();
-        console.log('Second attempt successful');
         return true;
       } catch (err2) {
-        console.log('Second attempt failed:', err2);
-        console.log('All attempts failed');
-        setError(
-          err2 instanceof Error ? err2.message : 'Failed to send message'
-        );
-        return false;
+        try {
+          await supabase.auth.refreshSession();
+          await attempt();
+          return true;
+        } catch (err3) {
+          setError(
+            err3 instanceof Error ? err3.message : 'Failed to send message'
+          );
+          return false;
+        }
       }
     }
   };

@@ -19,16 +19,12 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
-      console.log('Attempting to send message:', message.trim());
       const ok = await onSendMessage(message.trim());
-      console.log('Message send result:', ok);
       if (ok) {
         setMessage('');
         localStorage.removeItem(LOCAL_KEY);
         // Keep the textarea focused so the keyboard stays open
         textareaRef.current?.focus();
-      } else {
-        console.log('Message send failed');
       }
     }
   };

@@ -418,66 +418,33 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   const sendMessage = async (): Promise<boolean> => {
     if (!selectedConversation || !newMessage.trim()) return false;
-    
-    console.log('DM sendMessage called with:', { conversationId: selectedConversation.id, message: newMessage.trim() });
-
     const attempt = async () => {
-      console.log('Starting DM attempt...');
-      
-      console.log('Calling append_dm_message RPC...');
-      
-      // Add timeout to prevent hanging
-      const rpcPromise = supabase.rpc('append_dm_message', {
+      await supabase.rpc('append_dm_message', {
         conversation_id: selectedConversation.id,
         sender_id: currentUser.id,
         message_text: newMessage.trim()
       });
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('DM RPC timeout')), 10000)
-      );
-      
-      const { error } = await Promise.race([rpcPromise, timeoutPromise]) as any;
-      console.log('DM RPC call complete, error:', error);
-      if (error) throw error;
-      
-      console.log('Updating DM presence...');
-      
-      // Add timeout for presence update
-      const presencePromise = updatePresence();
-      const presenceTimeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('DM presence timeout')), 5000)
-      );
-      
-      try {
-        await Promise.race([presencePromise, presenceTimeoutPromise]);
-      } catch (presenceErr) {
-        console.warn('DM presence update failed:', presenceErr);
-      }
-      console.log('DM presence update complete');
+      await updatePresence();
     };
 
     try {
-      console.log('Attempting DM first try...');
       await attempt();
-      console.log('DM first attempt successful');
       return true;
     } catch (err1) {
-      console.log('DM send first attempt failed:', err1);
       try {
-        console.log('Trying DM session refresh...');
-        // Simple session refresh
-        await supabase.auth.refreshSession();
-        await new Promise((r) => setTimeout(r, 100));
-        console.log('Attempting DM second try...');
+        supabase.realtime.connect();
+        await new Promise((r) => setTimeout(r, 500));
         await attempt();
-        console.log('DM second attempt successful');
         return true;
       } catch (err2) {
-        console.log('DM send second attempt failed:', err2);
-        console.log('DM send all attempts failed');
-        console.error('Unable to send message. Please check your connection and try again.');
-        return false;
+        try {
+          await supabase.auth.refreshSession();
+          await attempt();
+          return true;
+        } catch (err3) {
+          console.error('Error sending message:', err3);
+          return false;
+        }
       }
     }
   };
