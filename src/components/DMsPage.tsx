@@ -418,15 +418,14 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   const sendMessage = async (): Promise<boolean> => {
     if (!selectedConversation || !newMessage.trim()) return false;
-    
-    // Always check session validity before attempting to send
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      console.error('Session expired. Please refresh the page.');
-      return false;
-    }
 
     const attempt = async () => {
+      // Check session right before the attempt
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('Session expired');
+      }
+      
       await supabase.rpc('append_dm_message', {
         conversation_id: selectedConversation.id,
         sender_id: currentUser.id,
@@ -439,31 +438,40 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       await attempt();
       return true;
     } catch (err1) {
+      console.log('DM send first attempt failed:', err1);
       try {
-        // Refresh session and reconnect realtime
+        // Try refreshing session
         await supabase.auth.refreshSession();
-        supabase.realtime.connect();
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 200));
         await attempt();
         return true;
       } catch (err2) {
+        console.log('DM send second attempt failed:', err2);
         try {
-          // Force a complete reconnection
-          const { data: { session: freshSession } } = await supabase.auth.getSession();
-          if (!freshSession) {
-            console.error('Session expired. Please refresh the page.');
-            return false;
+          // Force sign out and back in to get fresh session
+          const currentSession = await supabase.auth.getSession();
+          if (currentSession.data.session) {
+            const refreshToken = currentSession.data.session.refresh_token;
+            await supabase.auth.signOut();
+            await new Promise((r) => setTimeout(r, 100));
+            
+            // Try to restore session with refresh token
+            const { data, error } = await supabase.auth.refreshSession({
+              refresh_token: refreshToken
+            });
+            
+            if (error || !data.session) {
+              console.error('Session expired. Please sign in again.');
+              return false;
+            }
+            
+            await new Promise((r) => setTimeout(r, 300));
           }
-          
-          // Disconnect and reconnect realtime
-          supabase.realtime.disconnect();
-          await new Promise((r) => setTimeout(r, 200));
-          supabase.realtime.connect();
-          await new Promise((r) => setTimeout(r, 800));
           await attempt();
           return true;
         } catch (err3) {
-          console.error('Connection lost. Please refresh the page to continue.');
+          console.log('DM send final attempt failed:', err3);
+          console.error('Unable to send message. Please refresh the page and try again.');
           return false;
         }
       }

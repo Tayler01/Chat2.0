@@ -178,14 +178,13 @@ export function useMessages(userId: string | null) {
     avatarColor: string,
     avatarUrl?: string | null
   ): Promise<boolean> => {
-    // Always check session validity before attempting to send
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      setError('Session expired. Please refresh the page.');
-      return false;
-    }
-
     const attempt = async () => {
+      // Check session right before the attempt
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('Session expired');
+      }
+      
       const { error } = await supabase.from('messages').insert({
         content,
         user_name: userName,
@@ -194,6 +193,7 @@ export function useMessages(userId: string | null) {
         avatar_url: avatarUrl,
       });
       if (error) throw error;
+      
       await supabase.rpc('update_user_last_active');
     };
 
@@ -201,31 +201,40 @@ export function useMessages(userId: string | null) {
       await attempt();
       return true;
     } catch (err1) {
+      console.log('First attempt failed:', err1);
       try {
-        // Force reconnect realtime
+        // Try refreshing session and reconnecting
         await supabase.auth.refreshSession();
-        supabase.realtime.connect();
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 200));
         await attempt();
         return true;
       } catch (err2) {
+        console.log('Second attempt failed:', err2);
         try {
-          // Force a complete reconnection
-          const { data: { session: freshSession } } = await supabase.auth.getSession();
-          if (!freshSession) {
-            setError('Session expired. Please refresh the page.');
-            return false;
+          // Force sign out and back in to get fresh session
+          const currentSession = await supabase.auth.getSession();
+          if (currentSession.data.session) {
+            const refreshToken = currentSession.data.session.refresh_token;
+            await supabase.auth.signOut();
+            await new Promise((r) => setTimeout(r, 100));
+            
+            // Try to restore session with refresh token
+            const { data, error } = await supabase.auth.refreshSession({
+              refresh_token: refreshToken
+            });
+            
+            if (error || !data.session) {
+              setError('Session expired. Please sign in again.');
+              return false;
+            }
+            
+            await new Promise((r) => setTimeout(r, 300));
           }
-          
-          // Disconnect and reconnect realtime
-          supabase.realtime.disconnect();
-          await new Promise((r) => setTimeout(r, 200));
-          supabase.realtime.connect();
-          await new Promise((r) => setTimeout(r, 800));
           await attempt();
           return true;
         } catch (err3) {
-          setError('Connection lost. Please refresh the page to continue.');
+          console.log('Final attempt failed:', err3);
+          setError('Unable to send message. Please refresh the page and try again.');
           return false;
         }
       }
