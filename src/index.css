@@ -9,9 +9,6 @@ html, body, #root {
 body {
   overflow: hidden;
   overscroll-behavior-y: contain;
-  position: fixed;
-  width: 100%;
-  height: 100%;
 }
 
 ::-webkit-scrollbar {
@@ -58,19 +55,6 @@ body {
   textarea,
   select {
     font-size: 16px !important;
-  }
-  
-  /* Prevent viewport changes when keyboard appears */
-  body {
-    height: 100vh;
-    height: 100dvh;
-  }
-  
-  /* Ensure the app container maintains proper height */
-  #root {
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
   }
 }
 

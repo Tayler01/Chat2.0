@@ -133,7 +133,7 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 overflow-hidden relative">
+    <div className="flex flex-col h-screen bg-gray-900 overflow-hidden">
       <ChatHeader
         userName={user.username}
         onClearUser={signOut}
@@ -151,24 +151,22 @@ function App() {
         }}
       />
 
-      <div className="flex-1 flex flex-col min-h-0 relative">
-        <ChatArea
-          messages={messages}
-          currentUserId={user.id}
-          loading={loading}
-          error={error}
-          onRetry={() => window.location.reload()}
-          fetchOlderMessages={fetchOlderMessages}
-          hasMore={hasMore}
-          onUserClick={handleUserClick}
-          activeUserIds={activeUserIds}
-        />
+      <ChatArea
+        messages={messages}
+        currentUserId={user.id}
+        loading={loading}
+        error={error}
+        onRetry={() => window.location.reload()}
+        fetchOlderMessages={fetchOlderMessages}
+        hasMore={hasMore}
+        onUserClick={handleUserClick}
+        activeUserIds={activeUserIds}
+      />
 
-        <MessageInput 
-          onSendMessage={handleSendMessage}
-          disabled={loading}
-        />
-      </div>
+      <MessageInput 
+        onSendMessage={handleSendMessage}
+        disabled={loading}
+      />
 
       {previewUserId && (
         <ProfilePreviewModal

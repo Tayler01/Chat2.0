@@ -36,7 +36,7 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
   }, [message]);
 
   return (
-    <div className="border-t border-gray-700 bg-gray-800 px-2 sm:px-4 py-3 safe-area-inset-bottom flex-shrink-0">
+    <div className="border-t border-gray-700 bg-gray-800 px-2 sm:px-4 py-3 safe-area-inset-bottom">
       <form onSubmit={handleSubmit} className="flex justify-center">
         <div className="relative w-full max-w-2xl min-w-0">
           <div className="bg-gray-700 border border-gray-600 rounded-3xl px-3 sm:px-4 pr-12 sm:pr-14 py-2 text-white focus-within:ring-2 focus-within:ring-blue-500 shadow-md transition-all duration-150">

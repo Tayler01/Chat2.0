@@ -115,7 +115,7 @@ export function ChatArea({
     <>
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative pt-20 md:pt-24"
+        className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
       >
         {(() => {
           const items: JSX.Element[] = [];
