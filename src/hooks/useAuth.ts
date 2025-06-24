@@ -44,18 +44,20 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, [hasCheckedSession]);
 
+  const refreshSession = async () => {
+    await supabase.auth.refreshSession();
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+    if (session?.user) {
+      await fetchUserProfile(session.user);
+    } else {
+      setUser(null);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const refreshSession = async () => {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchUserProfile(session.user);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    };
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
@@ -115,5 +117,6 @@ export function useAuth() {
     loading,
     signOut,
     updateUser,
+    refreshSession,
   };
 }
