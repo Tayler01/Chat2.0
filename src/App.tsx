@@ -69,9 +69,9 @@ function App() {
     );
   }
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string): Promise<boolean> => {
     if (user) {
-      await sendMessage(
+      return await sendMessage(
         content,
         user.username,
         user.id,
@@ -79,6 +79,7 @@ function App() {
         user.avatar_url || null
       );
     }
+    return false;
   };
 
   const handleUserClick = (userId: string) => {

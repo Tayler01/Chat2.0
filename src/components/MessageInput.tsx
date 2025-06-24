@@ -1,22 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
+import { updatePresence } from '../utils/updatePresence';
 
 interface MessageInputProps {
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string) => Promise<boolean>;
   disabled?: boolean;
 }
 
 export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
+  const LOCAL_KEY = 'draft_message_group';
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const ensureConnection = () => {
+    updatePresence().catch(() => {});
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
-      onSendMessage(message.trim());
-      setMessage('');
-      // Keep the textarea focused so the keyboard stays open
-      textareaRef.current?.focus();
+      const ok = await onSendMessage(message.trim());
+      if (ok) {
+        setMessage('');
+        localStorage.removeItem(LOCAL_KEY);
+        // Keep the textarea focused so the keyboard stays open
+        textareaRef.current?.focus();
+      }
     }
   };
 
@@ -26,6 +35,17 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
       handleSubmit(e);
     }
   };
+
+  useEffect(() => {
+    const saved = localStorage.getItem(LOCAL_KEY);
+    if (saved) {
+      setMessage(saved);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(LOCAL_KEY, message);
+  }, [message]);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -43,7 +63,11 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
             <textarea
               ref={textareaRef}
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                ensureConnection();
+              }}
+              onFocus={ensureConnection}
               onKeyPress={handleKeyPress}
               placeholder="ShadowMessage..."
               className="w-full bg-transparent resize-none overflow-y-auto placeholder-gray-400 text-sm sm:text-base focus:outline-none max-h-32 sm:max-h-40"
