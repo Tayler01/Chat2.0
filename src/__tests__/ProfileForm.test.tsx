@@ -1,15 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ProfileForm } from '../components/ProfileForm';
+import { ProfileForm, ProfileFormValues } from '../components/ProfileForm';
 import '@testing-library/jest-dom';
 
-test('submits updated values', () => {
-  const handleSubmit = jest.fn();
-  render(<ProfileForm initialValues={{ username: 'john', bio: 'hello' }} onSubmit={handleSubmit} />);
+test('calls onSave with updated values', () => {
+  const handleSave = jest.fn();
+  function Wrapper() {
+    const [values, setValues] = useState<ProfileFormValues>({
+      username: 'john',
+      bio: 'hello',
+      avatar_color: '#000',
+      avatar_url: '',
+      banner_url: ''
+    });
+    return (
+      <ProfileForm
+        values={values}
+        onChange={setValues}
+        onCancel={() => {}}
+        onSave={() => handleSave(values)}
+        saving={false}
+      />
+    );
+  }
+
+  render(<Wrapper />);
 
   fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'jane' } });
   fireEvent.change(screen.getByLabelText(/bio/i), { target: { value: 'hi' } });
-  fireEvent.click(screen.getByText(/save/i));
+  fireEvent.click(screen.getByText(/save changes/i));
 
-  expect(handleSubmit).toHaveBeenCalledWith({ username: 'jane', bio: 'hi' });
+  expect(handleSave).toHaveBeenCalledWith(expect.objectContaining({ username: 'jane', bio: 'hi' }));
 });
