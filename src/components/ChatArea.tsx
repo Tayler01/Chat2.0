@@ -59,27 +59,24 @@ export function ChatArea({
 
   }, [messages]);
 
-  const handleScroll = useCallback(() => {
-  const container = containerRef.current;
-  if (!container || !hasMore || isFetchingRef.current) return;
+  const handleScroll = useCallback(async () => {
+    const container = containerRef.current;
+    if (!container || !hasMore || isFetchingRef.current) return;
 
-  // Allow a small threshold to improve touch scrolling experience
-  if (container.scrollTop <= 20) {
-    const previousHeight = container.scrollHeight;
-    isFetchingRef.current = true;
+    // Allow a small threshold to improve touch scrolling experience
+    if (container.scrollTop <= 20) {
+      const previousHeight = container.scrollHeight;
+      isFetchingRef.current = true;
 
-    fetchOlderMessages();
-    
-    // Use a timeout to restore scroll position after messages load
-    setTimeout(() => {
+      await fetchOlderMessages();
+
       requestAnimationFrame(() => {
         const newHeight = container.scrollHeight;
         container.scrollTop = newHeight - previousHeight;
 
         isFetchingRef.current = false;
       });
-    }, 100);
-  }
+    }
   }, [fetchOlderMessages, hasMore]);
 
   useEffect(() => {
