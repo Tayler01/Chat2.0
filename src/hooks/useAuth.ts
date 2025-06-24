@@ -52,9 +52,57 @@ export function useAuth() {
 
   const refreshSession = async () => {
     console.log('🔄 [useAuth] Refreshing session');
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    
+    try {
+      // Add timeout to session refresh
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Session refresh timeout')), 5000)
+      );
+      
+      const { data: { session } } = await Promise.race([
+        sessionPromise,
+        timeoutPromise
+      ]) as any;
+      
+      console.log('📋 [useAuth] Session refresh result:', {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        email: session?.user?.email
+      });
+      
+      if (session?.user) {
+        await fetchUserProfile(session.user);
+      } else {
+        console.log('❌ [useAuth] No session found during refresh');
+        setUser(null);
+        setLoading(false);
+      }
+    } catch (refreshErr) {
+      console.error('❌ [useAuth] Session refresh failed or timed out:', refreshErr);
+      // Try to recover by forcing a new auth state check
+      try {
+        console.log('🔄 [useAuth] Attempting auth recovery');
+        await supabase.auth.refreshSession();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await fetchUserProfile(session.user);
+        } else {
+          setUser(null);
+          setLoading(false);
+        }
+      } catch (recoveryErr) {
+        console.error('💥 [useAuth] Auth recovery failed:', recoveryErr);
+        setUser(null);
+        setLoading(false);
+      }
+    }
+  };
+
+  const oldRefreshSession = refreshSession;
+  
+  // Override with timeout version
+  const refreshSessionWithTimeout = async () => {
     console.log('📋 [useAuth] Session refresh result:', {
       hasSession: !!session,
       userId: session?.user?.id,
