@@ -46,6 +46,7 @@ export function useDirectMessages(currentUserId: string) {
   const [users, setUsers] = useState<User[]>([]);
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -60,6 +61,7 @@ export function useDirectMessages(currentUserId: string) {
       await updatePresence();
     } catch (err) {
       console.error('Error fetching users:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load users');
     }
   }, [currentUserId]);
 
@@ -78,6 +80,7 @@ export function useDirectMessages(currentUserId: string) {
       await updatePresence();
     } catch (err) {
       console.error('Error fetching conversations:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load conversations');
     } finally {
       setLoading(false);
     }
@@ -99,6 +102,7 @@ export function useDirectMessages(currentUserId: string) {
       return data || [];
     } catch (err) {
       console.error('Error fetching DM messages:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load messages');
       return [] as DMMessage[];
     }
   }, []);
@@ -128,6 +132,7 @@ export function useDirectMessages(currentUserId: string) {
     fetchConversationMessages,
     setConversations,
     refresh,
+    error,
   };
 }
 

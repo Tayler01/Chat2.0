@@ -3,6 +3,7 @@ import { MessageSquare, Send, X, ArrowLeft } from 'lucide-react';
 import { AvatarImage } from './AvatarImage';
 import { ContactSidebar } from './dms/ContactSidebar';
 import { DMMessageItem } from './dms/DMMessageItem';
+import { ErrorMessage } from './ErrorMessage';
 import { useDirectMessages } from '../hooks/useDirectMessages';
 import { supabase } from '../lib/supabase';
 import { updatePresence } from '../utils/updatePresence';
@@ -61,7 +62,7 @@ interface DMsPageProps {
 }
 
 export function DMsPage({ currentUser, onUserClick, unreadConversations = [], onConversationOpen, initialConversationId, onBackToGroupChat, activeUserIds }: DMsPageProps) {
-  const { users, conversations, loading, fetchConversationMessages, setConversations } = useDirectMessages(currentUser.id);
+  const { users, conversations, loading, fetchConversationMessages, setConversations, error, refresh } = useDirectMessages(currentUser.id);
   const [selectedConversation, setSelectedConversation] = useState<DMConversation | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const ensureConnection = () => {
@@ -477,6 +478,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       avatar_color: '#3B82F6'
     };
   };
+
+  if (error) {
+    return (
+      <ErrorMessage message={error} onRetry={refresh} />
+    );
+  }
 
 
 
