@@ -430,13 +430,13 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     try {
       await attempt();
       return true;
-    } catch (err1) {
+    } catch {
       try {
         supabase.realtime.connect();
         await new Promise((r) => setTimeout(r, 500));
         await attempt();
         return true;
-      } catch (err2) {
+      } catch {
         try {
           await supabase.auth.refreshSession();
           await attempt();
