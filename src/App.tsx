@@ -164,9 +164,9 @@ function App() {
         activeUserIds={activeUserIds}
       />
 
-      <MessageInput 
+      <MessageInput
         onSendMessage={handleSendMessage}
-        disabled={loading}
+        disabled={loading && messages.length === 0}
       />
 
       {previewUserId && (
