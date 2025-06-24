@@ -425,16 +425,35 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       console.log('Starting DM attempt...');
       
       console.log('Calling append_dm_message RPC...');
-      const { error } = await supabase.rpc('append_dm_message', {
+      
+      // Add timeout to prevent hanging
+      const rpcPromise = supabase.rpc('append_dm_message', {
         conversation_id: selectedConversation.id,
         sender_id: currentUser.id,
         message_text: newMessage.trim()
       });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('DM RPC timeout')), 10000)
+      );
+      
+      const { error } = await Promise.race([rpcPromise, timeoutPromise]) as any;
       console.log('DM RPC call complete, error:', error);
       if (error) throw error;
       
       console.log('Updating DM presence...');
-      await updatePresence();
+      
+      // Add timeout for presence update
+      const presencePromise = updatePresence();
+      const presenceTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('DM presence timeout')), 5000)
+      );
+      
+      try {
+        await Promise.race([presencePromise, presenceTimeoutPromise]);
+      } catch (presenceErr) {
+        console.warn('DM presence update failed:', presenceErr);
+      }
       console.log('DM presence update complete');
     };
 

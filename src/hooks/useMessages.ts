@@ -184,18 +184,33 @@ export function useMessages(userId: string | null) {
       console.log('Starting attempt...');
       
       console.log('Inserting message into database...');
-      const { error } = await supabase.from('messages').insert({
+      
+      // Add timeout to prevent hanging
+      const insertPromise = supabase.from('messages').insert({
         content,
         user_name: userName,
         user_id: userId,
         avatar_color: avatarColor,
         avatar_url: avatarUrl,
       });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database insert timeout')), 10000)
+      );
+      
+      const { error } = await Promise.race([insertPromise, timeoutPromise]) as any;
       console.log('Insert result:', { error });
       if (error) throw error;
       
       console.log('Updating user last active...');
-      const { error: presenceError } = await supabase.rpc('update_user_last_active');
+      
+      // Also add timeout for presence update
+      const presencePromise = supabase.rpc('update_user_last_active');
+      const presenceTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Presence update timeout')), 5000)
+      );
+      
+      const { error: presenceError } = await Promise.race([presencePromise, presenceTimeoutPromise]) as any;
       if (presenceError) console.warn('Presence update failed:', presenceError);
       console.log('Presence update complete');
     };
