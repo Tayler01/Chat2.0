@@ -26,8 +26,11 @@ jest.mock('../lib/supabase', () => ({
     channel: jest.fn(() => ({ on: jest.fn().mockReturnThis(), subscribe: jest.fn(), unsubscribe: jest.fn() })),
     from: jest.fn(() => ({ select: jest.fn().mockReturnThis(), order: jest.fn().mockReturnThis(), limit: jest.fn().mockReturnThis(), lt: jest.fn().mockReturnThis() })),
     rpc: jest.fn(),
+    realtime: { connect: jest.fn() },
   },
 }));
+
+import { supabase } from '../lib/supabase';
 
 test('focus triggers refresh without reload', () => {
   const authSpy = jest.spyOn(auth, 'triggerAuthRefresh').mockImplementation(() => Promise.resolve());
@@ -43,6 +46,7 @@ test('focus triggers refresh without reload', () => {
   expect(msgSpy).toHaveBeenCalled();
   expect(dmSpy).toHaveBeenCalled();
   expect(presSpy).toHaveBeenCalled();
+  expect(supabase.realtime.connect).toHaveBeenCalled();
 });
 
 test('pageshow triggers refresh', () => {
@@ -59,6 +63,7 @@ test('pageshow triggers refresh', () => {
   expect(msgSpy).toHaveBeenCalled();
   expect(dmSpy).toHaveBeenCalled();
   expect(presSpy).toHaveBeenCalled();
+  expect(supabase.realtime.connect).toHaveBeenCalled();
 });
 
 test('visibility change triggers refresh', () => {
@@ -76,6 +81,7 @@ test('visibility change triggers refresh', () => {
   expect(msgSpy).toHaveBeenCalled();
   expect(dmSpy).toHaveBeenCalled();
   expect(presSpy).toHaveBeenCalled();
+  expect(supabase.realtime.connect).toHaveBeenCalled();
 });
 
 test('online triggers refresh', () => {
@@ -92,4 +98,5 @@ test('online triggers refresh', () => {
   expect(msgSpy).toHaveBeenCalled();
   expect(dmSpy).toHaveBeenCalled();
   expect(presSpy).toHaveBeenCalled();
+  expect(supabase.realtime.connect).toHaveBeenCalled();
 });
