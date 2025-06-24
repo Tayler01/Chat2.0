@@ -15,6 +15,7 @@ export function useMessages(userId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
 
@@ -179,6 +180,7 @@ export function useMessages(userId: string | null) {
     avatarUrl?: string | null
   ) => {
     try {
+      setSending(true);
       const { error } = await supabase.from('messages').insert({
         content,
         user_name: userName,
@@ -192,6 +194,8 @@ export function useMessages(userId: string | null) {
       await supabase.rpc('update_user_last_active');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -199,6 +203,7 @@ export function useMessages(userId: string | null) {
   return {
     messages,
     loading,
+    sending,
     error,
     sendMessage,
     fetchOlderMessages,

@@ -33,6 +33,7 @@ function App() {
   const {
     messages,
     loading,
+    sending,
     error,
     sendMessage,
     fetchOlderMessages,
@@ -163,9 +164,9 @@ function App() {
         activeUserIds={activeUserIds}
       />
 
-      <MessageInput 
+      <MessageInput
         onSendMessage={handleSendMessage}
-        disabled={loading}
+        disabled={sending}
       />
 
       {previewUserId && (
