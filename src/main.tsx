@@ -5,6 +5,7 @@ import { ToastProvider } from './components/Toast';
 import './index.css';
 import { triggerAuthRefresh } from './hooks/useAuth';
 import { triggerMessagesRefresh } from './hooks/useMessages';
+import { triggerDMsRefresh } from './hooks/useDirectMessages';
 import { updatePresence } from './utils/updatePresence';
 
 // Component responsible for setting up focus/visibility event listeners.
@@ -13,6 +14,7 @@ export function Root() {
     const handleRefresh = () => {
       triggerAuthRefresh();
       triggerMessagesRefresh();
+      triggerDMsRefresh();
       updatePresence();
     };
 

@@ -1,4 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+
+let externalDMRefresh: (() => void) | null = null;
+
+export function triggerDMsRefresh() {
+  externalDMRefresh?.();
+}
 import { supabase } from '../lib/supabase';
 import { updatePresence } from '../utils/updatePresence';
 
@@ -97,10 +103,21 @@ export function useDirectMessages(currentUserId: string) {
     }
   }, []);
 
-  useEffect(() => {
+  const refresh = () => {
     fetchUsers();
     fetchConversations();
-  }, [fetchUsers, fetchConversations]);
+  };
+
+  useEffect(() => {
+    externalDMRefresh = refresh;
+    refresh();
+
+    return () => {
+      if (externalDMRefresh === refresh) {
+        externalDMRefresh = null;
+      }
+    };
+  }, [refresh]);
 
   return {
     users,
@@ -110,6 +127,7 @@ export function useDirectMessages(currentUserId: string) {
     fetchConversations,
     fetchConversationMessages,
     setConversations,
+    refresh,
   };
 }
 
