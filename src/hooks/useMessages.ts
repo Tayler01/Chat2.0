@@ -24,6 +24,8 @@ export function useMessages(userId: string | null) {
   const subscribeToMessages = () => {
     if (!userId) return;
 
+    console.log('📡 [subscribeToMessages] Setting up realtime subscription for userId:', userId);
+
     channelRef.current?.unsubscribe();
 
     const channel = supabase
@@ -32,12 +34,35 @@ export function useMessages(userId: string | null) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
+          console.log('📨 [subscribeToMessages] Received new message via realtime:', payload);
           const newMessage = payload.new as Message;
+          console.log('📋 [subscribeToMessages] Parsed message:', {
+            id: newMessage.id,
+            content: newMessage.content.substring(0, 50),
+            user_name: newMessage.user_name,
+            user_id: newMessage.user_id,
+            created_at: newMessage.created_at
+          });
 
           setMessages((prev) =>
-            prev.some((msg) => msg.id === newMessage.id)
-              ? prev
-              : [...prev, newMessage]
+            {
+              const exists = prev.some((msg) => msg.id === newMessage.id);
+              console.log('🔍 [subscribeToMessages] Message exists check:', {
+                messageId: newMessage.id,
+                exists,
+                currentMessageCount: prev.length
+              });
+              
+              if (exists) {
+                console.log('⚠️ [subscribeToMessages] Message already exists, skipping');
+                return prev;
+              } else {
+                console.log('✅ [subscribeToMessages] Adding new message to state');
+                const newState = [...prev, newMessage];
+                console.log('📊 [subscribeToMessages] New message count:', newState.length);
+                return newState;
+              }
+            }
           );
         }
       )
@@ -45,6 +70,7 @@ export function useMessages(userId: string | null) {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'messages' },
         (payload) => {
+          console.log('🔄 [subscribeToMessages] Received message update via realtime:', payload);
           const updatedMessage = payload.new as Message;
           
           setMessages((prev) =>
@@ -58,6 +84,7 @@ export function useMessages(userId: string | null) {
       )
       .subscribe();
 
+    console.log('🎯 [subscribeToMessages] Subscription created and subscribed');
     channelRef.current = channel;
   };
 
@@ -69,6 +96,7 @@ export function useMessages(userId: string | null) {
   useEffect(() => {
     if (!userId) return;
 
+    console.log('🎬 [useMessages] Initial setup for userId:', userId);
     externalMessagesRefresh = refresh;
 
     fetchLatestMessages();
@@ -78,6 +106,7 @@ export function useMessages(userId: string | null) {
       if (externalMessagesRefresh === refresh) {
         externalMessagesRefresh = null;
       }
+      console.log('🧹 [useMessages] Cleaning up subscription');
       channelRef.current?.unsubscribe();
     };
   }, [userId]);
@@ -109,6 +138,7 @@ export function useMessages(userId: string | null) {
 
   const fetchLatestMessages = async () => {
     try {
+      console.log('📥 [fetchLatestMessages] Fetching latest messages');
       setLoading(true);
 
       const { data, error } = await supabase
@@ -118,8 +148,13 @@ export function useMessages(userId: string | null) {
         .limit(PAGE_SIZE);
 
       if (error) throw error;
+      console.log('📦 [fetchLatestMessages] Received data:', {
+        messageCount: data?.length || 0,
+        messages: data?.map(m => ({ id: m.id, content: m.content.substring(0, 30), user_name: m.user_name })) || []
+      });
 
       const sorted = [...(data || [])].reverse();
+      console.log('📋 [fetchLatestMessages] Setting messages state with count:', sorted.length);
       setMessages(sorted);
 
       if (sorted.length > 0) {
@@ -128,7 +163,9 @@ export function useMessages(userId: string | null) {
 
       setHasMore((data || []).length === PAGE_SIZE);
       await updatePresence();
+      console.log('✅ [fetchLatestMessages] Messages loaded successfully');
     } catch (err) {
+      console.error('❌ [fetchLatestMessages] Error fetching messages:', err);
       setError(err instanceof Error ? err.message : 'Failed to load messages');
     } finally {
       setLoading(false);

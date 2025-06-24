@@ -35,6 +35,19 @@ export function ChatArea({
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
 
+  // Add logging for messages prop changes
+  useEffect(() => {
+    console.log('📺 [ChatArea] Messages prop updated:', {
+      messageCount: messages.length,
+      latestMessage: messages.length > 0 ? {
+        id: messages[messages.length - 1].id,
+        content: messages[messages.length - 1].content.substring(0, 30),
+        user_name: messages[messages.length - 1].user_name,
+        created_at: messages[messages.length - 1].created_at
+      } : null
+    });
+  }, [messages]);
+
   const latestMessageByUser = React.useMemo(() => {
     const map = new Map<string, string>();
     messages.forEach((m) => {
@@ -100,6 +113,7 @@ export function ChatArea({
   if (messages.length === 0) {
     return (
       <div className="flex items-center justify-center p-8 text-center flex-1">
+        {console.log('📭 [ChatArea] Rendering empty state')}
         <div>
           <p className="text-gray-400 text-lg mb-2">No messages yet</p>
           <p className="text-gray-500">Be the first to say hello! 👋</p>
@@ -114,6 +128,7 @@ export function ChatArea({
         ref={containerRef}
         className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
       >
+        {console.log('📋 [ChatArea] Rendering messages:', messages.length)}
         {(() => {
           const items: JSX.Element[] = [];
           let lastDateLabel: string | null = null;
