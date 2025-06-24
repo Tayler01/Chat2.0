@@ -182,12 +182,6 @@ export function useMessages(userId: string | null) {
     
     const attempt = async () => {
       console.log('Starting attempt...');
-      // Check session right before the attempt
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('Session check result:', { session: !!session, sessionError });
-      if (sessionError || !session) {
-        throw new Error('Session expired');
-      }
       
       console.log('Inserting message into database...');
       const { error } = await supabase.from('messages').insert({
@@ -201,7 +195,8 @@ export function useMessages(userId: string | null) {
       if (error) throw error;
       
       console.log('Updating user last active...');
-      await supabase.rpc('update_user_last_active');
+      const { error: presenceError } = await supabase.rpc('update_user_last_active');
+      if (presenceError) console.warn('Presence update failed:', presenceError);
       console.log('Presence update complete');
     };
 
@@ -214,48 +209,18 @@ export function useMessages(userId: string | null) {
       console.log('First attempt failed:', err1);
       try {
         console.log('Trying session refresh...');
-        // Try refreshing session and reconnecting
+        // Simple session refresh
         await supabase.auth.refreshSession();
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 100));
         console.log('Attempting second try...');
         await attempt();
         console.log('Second attempt successful');
         return true;
       } catch (err2) {
         console.log('Second attempt failed:', err2);
-        try {
-          console.log('Trying full session reset...');
-          // Force sign out and back in to get fresh session
-          const currentSession = await supabase.auth.getSession();
-          if (currentSession.data.session) {
-            const refreshToken = currentSession.data.session.refresh_token;
-            console.log('Signing out and back in...');
-            await supabase.auth.signOut();
-            await new Promise((r) => setTimeout(r, 100));
-            
-            // Try to restore session with refresh token
-            const { data, error } = await supabase.auth.refreshSession({
-              refresh_token: refreshToken
-            });
-            
-            if (error || !data.session) {
-              console.log('Session restore failed:', error);
-              setError('Session expired. Please sign in again.');
-              return false;
-            }
-            
-            console.log('Session restored, waiting...');
-            await new Promise((r) => setTimeout(r, 300));
-          }
-          console.log('Attempting final try...');
-          await attempt();
-          console.log('Final attempt successful');
-          return true;
-        } catch (err3) {
-          console.log('Final attempt failed:', err3);
-          setError('Unable to send message. Please refresh the page and try again.');
-          return false;
-        }
+        console.log('All attempts failed');
+        setError('Unable to send message. Please check your connection and try again.');
+        return false;
       }
     }
   };
