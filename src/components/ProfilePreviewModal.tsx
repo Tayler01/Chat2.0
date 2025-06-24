@@ -32,6 +32,14 @@ export function ProfilePreviewModal({ userId, onClose }: ProfilePreviewModalProp
       setLoading(true);
       setError(null);
 
+      // Check if userId is a valid UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(userId)) {
+        // Handle non-UUID users (like ESP32 devices)
+        setError('This user does not have a full profile available. Users like "esp32" do not have full profiles in the system.');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('users')
         .select('id, username, email, bio, avatar_color, avatar_url, banner_url, created_at')

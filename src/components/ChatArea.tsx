@@ -15,6 +15,7 @@ interface ChatAreaProps {
   fetchOlderMessages: () => void;
   hasMore: boolean;
   onUserClick?: (userId: string) => void;
+  activeUserIds: string[];
 }
 
 export function ChatArea({
@@ -26,11 +27,21 @@ export function ChatArea({
   fetchOlderMessages,
   hasMore,
   onUserClick,
+  activeUserIds,
+
 }: ChatAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
+
+  const latestMessageByUser = React.useMemo(() => {
+    const map = new Map<string, string>();
+    messages.forEach((m) => {
+      map.set(m.user_id, m.id);
+    });
+    return map;
+  }, [messages]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -45,13 +56,15 @@ export function ChatArea({
     } else if (isNearBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
+
   }, [messages]);
 
   const handleScroll = useCallback(() => {
   const container = containerRef.current;
   if (!container || !hasMore || isFetchingRef.current) return;
 
-  if (container.scrollTop === 0) {
+  // Allow a small threshold to improve touch scrolling experience
+  if (container.scrollTop <= 20) {
     const previousHeight = container.scrollHeight;
     isFetchingRef.current = true;
 
@@ -99,16 +112,21 @@ export function ChatArea({
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
-    >
-      {(() => {
-        const items: JSX.Element[] = [];
-        let lastDateLabel: string | null = null;
+    <>
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
+      >
+        {(() => {
+          const items: JSX.Element[] = [];
+          let lastDateLabel: string | null = null;
 
-        messages.forEach((message) => {
+        messages.forEach((message, index) => {
           const dateLabel = formatDateGroup(message.created_at);
+          const nextMessage = messages[index + 1];
+          const nextDateLabel = nextMessage
+            ? formatDateGroup(nextMessage.created_at)
+            : null;
 
           if (dateLabel !== lastDateLabel) {
             items.push(
@@ -124,15 +142,25 @@ export function ChatArea({
               key={message.id}
               message={message}
               isOwnMessage={message.user_id === currentUserId}
+              currentUserId={currentUserId}
               onUserClick={onUserClick}
+              activeUserIds={activeUserIds}
+              showActiveDot={latestMessageByUser.get(message.user_id) === message.id}
+              showTimestamp={
+                !nextMessage ||
+                nextMessage.user_id !== message.user_id ||
+                dateLabel !== nextDateLabel
+              }
             />
           );
         });
 
-        return items;
-      })()}
-      <div ref={messagesEndRef} />
-    </div>
+          return items;
+        })()}
+        <div ref={messagesEndRef} />
+      </div>
+      
+    </>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AuthForm } from './components/AuthForm';
 import { ChatHeader } from './components/ChatHeader';
 import { ChatArea } from './components/ChatArea';
@@ -6,10 +6,13 @@ import { MessageInput } from './components/MessageInput';
 import { UserProfile } from './components/UserProfile';
 import { ProfilePreviewModal } from './components/ProfilePreviewModal';
 import { DMsPage } from './components/DMsPage';
+import { DMNotification } from './components/DMNotification';
 import { useMessages } from './hooks/useMessages';
 import { useAuth } from './hooks/useAuth';
+import { useDMNotifications } from './hooks/useDMNotifications';
 import { LoadingSpinner } from './components/LoadingSpinner';
-import { supabase } from './lib/supabase';
+import { usePresence } from './hooks/usePresence';
+import { useActiveUserProfiles } from './hooks/useActiveUserProfiles';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -17,6 +20,14 @@ function App() {
   const { user, loading: authLoading, signOut, updateUser } = useAuth();
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<PageType>('group-chat');
+  const [openConversationId, setOpenConversationId] = useState<string | null>(null);
+
+  const {
+    unreadConversations,
+    hasUnread,
+    preview: dmPreview,
+    markAsRead,
+  } = useDMNotifications(user?.id ?? null);
 
   // Only call useMessages if user is authenticated
   const {
@@ -27,6 +38,9 @@ function App() {
     fetchOlderMessages,
     hasMore,
   } = useMessages(user?.id ?? null);
+
+  const activeUserIds = usePresence();
+  const activeUsers = useActiveUserProfiles(activeUserIds);
 
   // Show loading spinner while checking auth
   if (authLoading) {
@@ -57,14 +71,13 @@ function App() {
 
   const handleSendMessage = async (content: string) => {
     if (user) {
-      // Get the latest user data including avatar_url
-      const { data: userData } = await supabase
-        .from('users')
-        .select('avatar_url')
-        .eq('id', user.id)
-        .single();
-      
-      await sendMessage(content, user.username, user.id, user.avatar_color, userData?.avatar_url || null);
+      await sendMessage(
+        content,
+        user.username,
+        user.id,
+        user.avatar_color,
+        user.avatar_url || null
+      );
     }
   };
 
@@ -78,15 +91,37 @@ function App() {
   // Show DMs page
   if (currentPage === 'dms') {
     return (
-      <div className="flex flex-col h-screen bg-gray-900">
-        <ChatHeader 
-          userName={user.username}
-          onClearUser={signOut}
-          onShowProfile={() => setCurrentPage('profile')}
-          currentPage={currentPage}
-          onPageChange={setCurrentPage}
+      <div className="flex flex-col h-screen bg-gray-900 overflow-hidden">
+        <div className="hidden md:block">
+          <ChatHeader
+            userName={user.username}
+            onClearUser={signOut}
+            onShowProfile={() => setCurrentPage('profile')}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            hasUnreadDMs={hasUnread}
+            activeUsers={activeUsers}
+          />
+        </div>
+        <DMNotification
+          preview={dmPreview}
+          onJump={(id) => {
+            setOpenConversationId(id);
+            // already on DMs page
+          }}
         />
-        <DMsPage currentUser={user} onUserClick={handleUserClick} />
+        <DMsPage
+          currentUser={user}
+          onUserClick={handleUserClick}
+          unreadConversations={unreadConversations}
+          onConversationOpen={(id, ts) => {
+            markAsRead(id, ts);
+            setOpenConversationId(null);
+          }}
+          initialConversationId={openConversationId}
+          onBackToGroupChat={() => setCurrentPage('group-chat')}
+          activeUserIds={activeUserIds}
+        />
         {previewUserId && (
           <ProfilePreviewModal
             userId={previewUserId}
@@ -98,13 +133,22 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900">
-      <ChatHeader 
+    <div className="flex flex-col h-screen bg-gray-900 overflow-hidden">
+      <ChatHeader
         userName={user.username}
         onClearUser={signOut}
         onShowProfile={() => setCurrentPage('profile')}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
+        hasUnreadDMs={hasUnread}
+        activeUsers={activeUsers}
+      />
+      <DMNotification
+        preview={dmPreview}
+        onJump={(id) => {
+          setOpenConversationId(id);
+          setCurrentPage('dms');
+        }}
       />
 
       <ChatArea
@@ -116,6 +160,7 @@ function App() {
         fetchOlderMessages={fetchOlderMessages}
         hasMore={hasMore}
         onUserClick={handleUserClick}
+        activeUserIds={activeUserIds}
       />
 
       <MessageInput 
