@@ -8,16 +8,6 @@ interface DMMessage {
   created_at: string;
 }
 
-interface DMConversation {
-  id: string;
-  user1_id: string;
-  user2_id: string;
-  user1_username: string;
-  user2_username: string;
-  messages: DMMessage[];
-  updated_at: string;
-}
-
 interface DMPreview {
   conversationId: string;
   sender: string;
@@ -77,30 +67,31 @@ export function useDMNotifications(userId: string | null) {
       }
     };
 
-    const handlePayload = async (payload: { new: DMConversation }) => {
-      const conversation = payload.new as DMConversation;
+    const handlePayload = async (
+      payload: { new: DMMessage & { conversation_id: string } }
+    ) => {
+      const message = payload.new as DMMessage & { conversation_id: string };
+      if (message.sender_id === userId) return;
 
-      const { data: messages } = await supabase
-        .from('dm_messages')
-        .select('sender_id, content, created_at')
-        .eq('conversation_id', conversation.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const { data: conversation, error } = await supabase
+        .from('dms')
+        .select('id, user1_id, user2_id, user1_username, user2_username')
+        .eq('id', message.conversation_id)
+        .single();
 
-      const lastMessage = messages?.[0];
-      if (!lastMessage || lastMessage.sender_id === userId) return;
+      if (error || !conversation) return;
 
       const lastRead = getLastRead();
       const readAt = lastRead[conversation.id];
-      if (!readAt || new Date(conversation.updated_at) > new Date(readAt)) {
+      if (!readAt || new Date(message.created_at) > new Date(readAt)) {
         setUnreadIds((prev) => new Set(prev).add(conversation.id));
         setPreview({
           conversationId: conversation.id,
           sender:
-            conversation.user1_id === userId
-              ? conversation.user2_username
-              : conversation.user1_username,
-          content: lastMessage.content,
+            conversation.user1_id === message.sender_id
+              ? conversation.user1_username
+              : conversation.user2_username,
+          content: message.content,
         });
         // Keep preview visible for 4 seconds to match the notification display
         setTimeout(() => setPreview(null), 4000);
@@ -109,7 +100,11 @@ export function useDMNotifications(userId: string | null) {
 
     const channel = supabase
       .channel('dm_notifications')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'dms' }, handlePayload)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'dm_messages' },
+        handlePayload
+      )
       .subscribe();
 
     channelRef.current = channel;
