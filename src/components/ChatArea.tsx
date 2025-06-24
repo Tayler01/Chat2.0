@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import { Virtuoso } from 'react-virtuoso';
+import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { MessageBubble } from './MessageBubble';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
@@ -32,6 +32,7 @@ export function ChatArea({
 
 }: ChatAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
@@ -76,19 +77,23 @@ export function ChatArea({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || messages.length === 0) return;
+    if (!container || virtualItems.length === 0) return;
 
     const isNearBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight < 200;
 
     if (!hasAutoScrolled.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      virtuosoRef.current?.scrollToIndex({ index: virtualItems.length - 1 });
       hasAutoScrolled.current = true;
     } else if (isNearBottom) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      virtuosoRef.current?.scrollToIndex({
+        index: virtualItems.length - 1,
+        align: 'end',
+        behavior: 'smooth',
+      });
     }
 
-  }, [messages]);
+  }, [virtualItems.length]);
 
   const handleScroll = useCallback(() => {
   const container = containerRef.current;
@@ -145,6 +150,7 @@ export function ChatArea({
   return (
     <>
       <Virtuoso
+        ref={virtuosoRef}
         data={virtualItems}
         scrollerRef={(ref) => {
           containerRef.current = ref as HTMLDivElement | null;
