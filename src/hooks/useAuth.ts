@@ -15,6 +15,54 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
 
+  const fetchUserProfile = async (authUser: User) => {
+    try {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('username, avatar_color, avatar_url')
+        .eq('id', authUser.id)
+        .single();
+
+      setUser({
+        id: authUser.id,
+        email: authUser.email || '',
+        username: profile?.username || authUser.email?.split('@')[0] || 'User',
+        avatar_color: profile?.avatar_color || '#3B82F6',
+        avatar_url: profile?.avatar_url || null,
+      });
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      setUser({
+        id: authUser.id,
+        email: authUser.email || '',
+        username: authUser.email?.split('@')[0] || 'User',
+        avatar_color: '#3B82F6',
+        avatar_url: null,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshSession = async () => {
+    try {
+      await supabase.auth.refreshSession();
+    } catch (error) {
+      console.error('Error refreshing session:', error);
+    }
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session?.user) {
+      await fetchUserProfile(session.user);
+    } else {
+      setUser(null);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -45,24 +93,6 @@ export function useAuth() {
   }, [hasCheckedSession]);
 
   useEffect(() => {
-    const refreshSession = async () => {
-      try {
-        await supabase.auth.refreshSession();
-      } catch (error) {
-        console.error('Error refreshing session:', error);
-      }
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session?.user) {
-        await fetchUserProfile(session.user);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    };
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
@@ -79,35 +109,6 @@ export function useAuth() {
     };
   }, []);
 
-  const fetchUserProfile = async (authUser: User) => {
-    try {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('username, avatar_color, avatar_url')
-        .eq('id', authUser.id)
-        .single();
-
-      setUser({
-        id: authUser.id,
-        email: authUser.email || '',
-        username: profile?.username || authUser.email?.split('@')[0] || 'User',
-        avatar_color: profile?.avatar_color || '#3B82F6',
-        avatar_url: profile?.avatar_url || null,
-      });
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      setUser({
-        id: authUser.id,
-        email: authUser.email || '',
-        username: authUser.email?.split('@')[0] || 'User',
-        avatar_color: '#3B82F6',
-        avatar_url: null,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -120,6 +121,7 @@ export function useAuth() {
   return {
     user,
     loading,
+    refreshSession,
     signOut,
     updateUser,
   };

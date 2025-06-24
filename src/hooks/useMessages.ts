@@ -70,14 +70,12 @@ export function useMessages(userId: string | null) {
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        subscribeToMessages();
-        fetchLatestMessages();
+        refresh();
       }
     };
 
     const handleFocus = () => {
-      subscribeToMessages();
-      fetchLatestMessages();
+      refresh();
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
@@ -123,6 +121,11 @@ export function useMessages(userId: string | null) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const refresh = () => {
+    subscribeToMessages();
+    fetchLatestMessages();
   };
 
   const fetchOlderMessages = async () => {
@@ -190,6 +193,7 @@ export function useMessages(userId: string | null) {
     messages,
     loading,
     error,
+    refresh,
     sendMessage,
     fetchOlderMessages,
     hasMore,
