@@ -46,9 +46,16 @@ export function useAuth() {
 
   useEffect(() => {
     const refreshSession = async () => {
+      try {
+        await supabase.auth.refreshSession();
+      } catch (error) {
+        console.error('Error refreshing session:', error);
+      }
+
       const {
-        data: { session }
+        data: { session },
       } = await supabase.auth.getSession();
+
       if (session?.user) {
         await fetchUserProfile(session.user);
       } else {
