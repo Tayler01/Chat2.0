@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { updatePresence } from '../utils/updatePresence';
 import { Message } from '../types/message';
 
 const PAGE_SIZE = 20;
@@ -89,13 +90,6 @@ export function useMessages(userId: string | null) {
     };
   }, [userId]);
 
-  const updatePresence = async () => {
-    try {
-      await supabase.rpc('update_user_last_active');
-    } catch (err) {
-      console.error('Failed to update last_active', err);
-    }
-  };
 
   const fetchLatestMessages = async () => {
     try {

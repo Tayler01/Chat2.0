@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
 import { Smile } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { updatePresence } from '../utils/updatePresence';
 import { useToast } from './Toast';
 
 interface User {
@@ -77,13 +78,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
   const [isReacting, setIsReacting] = useState(false);
   const { show } = useToast();
-  const updatePresence = async () => {
-    try {
-      await supabase.rpc('update_user_last_active');
-    } catch (err) {
-      console.error('Failed to update presence', err);
-    }
-  };
 
   const getConversationWithUser = useCallback(
     (userId: string) =>
