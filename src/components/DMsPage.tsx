@@ -309,12 +309,6 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
     return conversations.find(conv => conv.id === selectedConversation);
   }, [conversations, selectedConversation]);
 
-  const scrollToBottom = useCallback(() => {
-    if (listRef.current && currentConversation) {
-      listRef.current.scrollToItem(currentConversation.messages.length - 1);
-    }
-  }, [currentConversation]);
-
   useEffect(() => {
     scrollToBottom();
   }, [conversations, selectedConversation, scrollToBottom]);
@@ -324,6 +318,12 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
       ? { id: conversation.user2_id, username: conversation.user2_username }
       : { id: conversation.user1_id, username: conversation.user1_username };
   }, [currentUser.id]);
+
+  const scrollToBottom = useCallback(() => {
+    if (listRef.current && currentConversation) {
+      listRef.current.scrollToItem(currentConversation.messages.length - 1);
+    }
+  }, [currentConversation]);
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
