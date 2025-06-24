@@ -2,15 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
-  height: 100%;
-}
-
-body {
-  overflow: hidden;
-  overscroll-behavior-y: contain;
-}
-
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -40,14 +31,6 @@ body {
   scrollbar-color: #6B7280 #374151;
 }
 
-/* Line clamp utility for notification text */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 @media screen and (max-width: 768px) {
   input[type="text"],
   input[type="email"],
@@ -62,31 +45,16 @@ body {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
-.safe-area-inset-top {
-  padding-top: env(safe-area-inset-top);
-}
-
-
-.h-screen {
-  height: 100dvh;
-  height: 100svh;
-  height: 100vh;
-}
-
 @supports (-webkit-touch-callout: none) {
   .h-screen {
     height: -webkit-fill-available;
-    height: 100dvh;
-    height: 100svh;
-    height: 100vh;
   }
 }
 
 @media screen and (max-width: 768px) {
   .h-\[calc\(100vh-5rem\)\] {
-    height: calc(100dvh - 5rem);
-    height: calc(100svh - 5rem);
     height: calc(100vh - 5rem);
+    height: calc(100dvh - 5rem);
   }
   
   body {
