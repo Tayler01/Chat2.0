@@ -51,6 +51,13 @@ export function useAuth() {
   }, [hasCheckedSession]);
 
   const refreshSession = async () => {
+    try {
+      // Force refresh the session
+      await supabase.auth.refreshSession();
+    } catch (error) {
+      console.error('Error refreshing session:', error);
+    }
+    
     const {
       data: { session },
     } = await supabase.auth.getSession();

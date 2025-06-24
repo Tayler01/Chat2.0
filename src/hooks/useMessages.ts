@@ -178,6 +178,13 @@ export function useMessages(userId: string | null) {
     avatarColor: string,
     avatarUrl?: string | null
   ): Promise<boolean> => {
+    // Always check session validity before attempting to send
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      setError('Session expired. Please refresh the page.');
+      return false;
+    }
+
     const attempt = async () => {
       const { error } = await supabase.from('messages').insert({
         content,
@@ -196,36 +203,30 @@ export function useMessages(userId: string | null) {
     } catch (err1) {
       try {
         // Force reconnect realtime
+        await supabase.auth.refreshSession();
         supabase.realtime.connect();
         await new Promise((r) => setTimeout(r, 500));
         await attempt();
         return true;
       } catch (err2) {
         try {
-          // Refresh auth session and retry
-          await supabase.auth.refreshSession();
-          await new Promise((r) => setTimeout(r, 300));
+          // Force a complete reconnection
+          const { data: { session: freshSession } } = await supabase.auth.getSession();
+          if (!freshSession) {
+            setError('Session expired. Please refresh the page.');
+            return false;
+          }
+          
+          // Disconnect and reconnect realtime
+          supabase.realtime.disconnect();
+          await new Promise((r) => setTimeout(r, 200));
+          supabase.realtime.connect();
+          await new Promise((r) => setTimeout(r, 800));
           await attempt();
           return true;
         } catch (err3) {
-          try {
-            // Final attempt: get fresh session and reconnect everything
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-              supabase.realtime.connect();
-              await new Promise((r) => setTimeout(r, 800));
-              await attempt();
-              return true;
-            } else {
-              setError('Session expired. Please refresh the page.');
-              return false;
-            }
-          } catch (err4) {
-            setError(
-              err4 instanceof Error ? err4.message : 'Failed to send message'
-            );
-            return false;
-          }
+          setError('Connection lost. Please refresh the page to continue.');
+          return false;
         }
       }
     }
