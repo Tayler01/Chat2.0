@@ -18,14 +18,32 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 [MessageInput] Form submitted', {
+      messageLength: message.trim().length,
+      disabled,
+      timestamp: new Date().toISOString()
+    });
+    
     if (message.trim() && !disabled) {
+      console.log('✅ [MessageInput] Message validation passed, calling onSendMessage');
       const ok = await onSendMessage(message.trim());
+      console.log('📊 [MessageInput] onSendMessage result:', ok);
       if (ok) {
+        console.log('🧹 [MessageInput] Clearing message and localStorage');
         setMessage('');
         localStorage.removeItem(LOCAL_KEY);
         // Keep the textarea focused so the keyboard stays open
         textareaRef.current?.focus();
+        console.log('✅ [MessageInput] Message cleared and textarea focused');
+      } else {
+        console.error('❌ [MessageInput] Message send failed, keeping message in input');
       }
+    } else {
+      console.warn('⚠️ [MessageInput] Message validation failed', {
+        messageEmpty: !message.trim(),
+        disabled,
+        messageLength: message.length
+      });
     }
   };
 

@@ -70,14 +70,27 @@ function App() {
   }
 
   const handleSendMessage = async (content: string): Promise<boolean> => {
+    console.log('🎬 [App] handleSendMessage called', {
+      contentLength: content.length,
+      userExists: !!user,
+      userId: user?.id,
+      username: user?.username,
+      timestamp: new Date().toISOString()
+    });
+    
     if (user) {
-      return await sendMessage(
+      console.log('👤 [App] User authenticated, calling sendMessage hook');
+      const result = await sendMessage(
         content,
         user.username,
         user.id,
         user.avatar_color,
         user.avatar_url || null
       );
+      console.log('📈 [App] sendMessage hook result:', result);
+      return result;
+    } else {
+      console.error('❌ [App] No user found, cannot send message');
     }
     return false;
   };

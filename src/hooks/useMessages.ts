@@ -178,7 +178,17 @@ export function useMessages(userId: string | null) {
     avatarColor: string,
     avatarUrl?: string | null
   ): Promise<boolean> => {
+    console.log('🚀 [sendMessage] Starting message send process', {
+      content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+      userName,
+      userId,
+      avatarColor,
+      avatarUrl,
+      timestamp: new Date().toISOString()
+    });
+
     const attempt = async () => {
+      console.log('📤 [sendMessage] Attempting to insert message into database');
       const { error } = await supabase.from('messages').insert({
         content,
         user_name: userName,
@@ -186,25 +196,43 @@ export function useMessages(userId: string | null) {
         avatar_color: avatarColor,
         avatar_url: avatarUrl,
       });
-      if (error) throw error;
+      if (error) {
+        console.error('❌ [sendMessage] Database insert failed:', error);
+        throw error;
+      }
+      console.log('✅ [sendMessage] Message inserted successfully');
+      
+      console.log('🔄 [sendMessage] Updating user last active');
       await supabase.rpc('update_user_last_active');
+      console.log('✅ [sendMessage] User last active updated');
     };
 
     try {
+      console.log('🎯 [sendMessage] First attempt');
       await attempt();
+      console.log('🎉 [sendMessage] First attempt successful');
       return true;
     } catch (err1) {
+      console.warn('⚠️ [sendMessage] First attempt failed, trying reconnect:', err1);
       try {
+        console.log('🔌 [sendMessage] Reconnecting realtime');
         supabase.realtime.connect();
         await new Promise((r) => setTimeout(r, 500));
+        console.log('🎯 [sendMessage] Second attempt after reconnect');
         await attempt();
+        console.log('🎉 [sendMessage] Second attempt successful');
         return true;
       } catch (err2) {
+        console.warn('⚠️ [sendMessage] Second attempt failed, trying auth refresh:', err2);
         try {
+          console.log('🔐 [sendMessage] Refreshing auth session');
           await supabase.auth.refreshSession();
+          console.log('🎯 [sendMessage] Third attempt after auth refresh');
           await attempt();
+          console.log('🎉 [sendMessage] Third attempt successful');
           return true;
         } catch (err3) {
+          console.error('💥 [sendMessage] All attempts failed:', err3);
           setError(
             err3 instanceof Error ? err3.message : 'Failed to send message'
           );
