@@ -178,7 +178,7 @@ export function useMessages(userId: string | null) {
     avatarColor: string,
     avatarUrl?: string | null
   ): Promise<boolean> => {
-    try {
+    const attempt = async () => {
       const { error } = await supabase.from('messages').insert({
         content,
         user_name: userName,
@@ -186,14 +186,24 @@ export function useMessages(userId: string | null) {
         avatar_color: avatarColor,
         avatar_url: avatarUrl,
       });
-
       if (error) throw error;
-
       await supabase.rpc('update_user_last_active');
+    };
+
+    try {
+      await attempt();
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send message');
-      return false;
+      try {
+        supabase.realtime.connect();
+        await attempt();
+        return true;
+      } catch (err2) {
+        setError(
+          err2 instanceof Error ? err2.message : 'Failed to send message'
+        );
+        return false;
+      }
     }
   };
 
