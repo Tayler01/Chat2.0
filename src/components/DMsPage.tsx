@@ -61,6 +61,22 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<DMConversation | null>(null);
   const [newMessage, setNewMessage] = useState('');
+
+  const draftKey = selectedConversation ? `dmDraft-${selectedConversation.id}` : 'dmDraft';
+
+  useEffect(() => {
+    if (selectedConversation) {
+      const saved = localStorage.getItem(`dmDraft-${selectedConversation.id}`);
+      if (saved) setNewMessage(saved);
+      else setNewMessage('');
+    }
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    if (selectedConversation) {
+      localStorage.setItem(draftKey, newMessage);
+    }
+  }, [newMessage, selectedConversation]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'recent' | 'all'>('all');
@@ -417,8 +433,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     }
   };
 
-  const sendMessage = async () => {
-    if (!selectedConversation || !newMessage.trim()) return;
+  const sendMessage = async (): Promise<boolean> => {
+    if (!selectedConversation || !newMessage.trim()) return false;
 
     try {
       await supabase.rpc('append_dm_message', {
@@ -428,9 +444,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       });
 
       setNewMessage('');
+      localStorage.removeItem(draftKey);
       await updatePresence();
+      return true;
     } catch (err) {
       console.error('Error sending message:', err);
+      return false;
     }
   };
 
