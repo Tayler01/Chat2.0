@@ -137,6 +137,84 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     }
   }, []);
 
+  const oldestTimestampRef = useRef<string | null>(null);
+  const hasMoreRef = useRef(true);
+  const loadingOlderRef = useRef(false);
+
+  const fetchConversationMessages = useCallback(
+    async (conversationId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('dm_messages')
+          .select('id, sender_id, content, created_at, reactions')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: false })
+          .limit(DM_PAGE_SIZE);
+
+        if (error) throw error;
+
+        const sorted = [...(data || [])].reverse();
+        oldestTimestampRef.current = sorted.length > 0 ? sorted[0].created_at : null;
+        hasMoreRef.current = (data || []).length === DM_PAGE_SIZE;
+
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === conversationId ? { ...conv, messages: sorted } : conv
+          )
+        );
+
+        if (selectedConversation?.id === conversationId) {
+          setSelectedConversation(conv =>
+            conv ? { ...conv, messages: sorted } : null
+          );
+          setMessageLimit(Math.min(DM_PAGE_SIZE, sorted.length));
+        }
+      } catch (err) {
+        console.error('Error fetching DM messages:', err);
+      }
+    },
+    [selectedConversation]
+  );
+
+  const fetchOlderMessages = useCallback(async () => {
+    if (!selectedConversation || !oldestTimestampRef.current || !hasMoreRef.current || loadingOlderRef.current) return;
+
+    loadingOlderRef.current = true;
+    try {
+      const { data, error } = await supabase
+        .from('dm_messages')
+        .select('id, sender_id, content, created_at, reactions')
+        .eq('conversation_id', selectedConversation.id)
+        .lt('created_at', oldestTimestampRef.current)
+        .order('created_at', { ascending: false })
+        .limit(DM_PAGE_SIZE);
+
+      if (error) throw error;
+
+      const sorted = [...(data || [])].reverse();
+      if (sorted.length > 0) {
+        oldestTimestampRef.current = sorted[0].created_at;
+      }
+      hasMoreRef.current = (data || []).length === DM_PAGE_SIZE;
+
+      setSelectedConversation(conv =>
+        conv ? { ...conv, messages: [...sorted, ...conv.messages] } : null
+      );
+      setConversations(prev =>
+        prev.map(c =>
+          c.id === selectedConversation.id
+            ? { ...c, messages: [...sorted, ...(c.messages || [])] }
+            : c
+        )
+      );
+      setMessageLimit(limit => limit + sorted.length);
+    } catch (err) {
+      console.error('Error fetching older DM messages:', err);
+    } finally {
+      loadingOlderRef.current = false;
+    }
+  }, [selectedConversation]);
+
   const setupRealtimeSubscription = useCallback(() => {
     cleanupConnections();
 
@@ -169,6 +247,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
             // Update selected conversation if it's the same one
             if (selectedConversation?.id === updatedConversation.id) {
               setSelectedConversation(updatedConversation);
+              fetchConversationMessages(updatedConversation.id);
             }
           }
         }
@@ -176,7 +255,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       .subscribe();
 
     channelRef.current = channel;
-  }, [cleanupConnections, selectedConversation?.id, currentUser.id]);
+  }, [cleanupConnections, selectedConversation?.id, currentUser.id, fetchConversationMessages]);
 
   // Handle scroll detection to prevent auto-scroll when user is manually scrolling
   const handleScroll = useCallback(() => {
@@ -193,26 +272,19 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       isUserScrollingRef.current = false;
     }, 1000);
 
-    if (
-      container.scrollTop === 0 &&
-      messageLimit < selectedConversation.messages.length &&
-      !isLoadingMoreRef.current
-    ) {
+    if (container.scrollTop === 0 && hasMoreRef.current && !isLoadingMoreRef.current) {
       const previousHeight = container.scrollHeight;
       isLoadingMoreRef.current = true;
-      setMessageLimit((limit) =>
-        Math.min(limit + DM_PAGE_SIZE, selectedConversation.messages.length)
-      );
 
-      setTimeout(() => {
+      fetchOlderMessages().then(() => {
         requestAnimationFrame(() => {
           const newHeight = container.scrollHeight;
           container.scrollTop = newHeight - previousHeight;
           isLoadingMoreRef.current = false;
         });
-      }, 100);
+      });
     }
-  }, [messageLimit, selectedConversation]);
+  }, [selectedConversation, fetchOlderMessages]);
 
   const fetchCurrentUserData = useCallback(async () => {
     try {
@@ -251,7 +323,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
       const { data, error } = await supabase
         .from('dms')
-        .select('*')
+        .select('id, user1_id, user2_id, user1_username, user2_username, updated_at')
         .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
         .order('updated_at', { ascending: false });
 
@@ -266,19 +338,22 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   }, [currentUser.id]);
 
   useEffect(() => {
-    if (initialConversationId && conversations.length > 0 && !selectedConversation) {
-      const conv = conversations.find(c => c.id === initialConversationId);
-      if (conv) {
-        const normalized = normalizeConversation(conv);
-        setSelectedConversation(normalized);
-        setMessageLimit(Math.min(DM_PAGE_SIZE, normalized.messages.length));
-        hasAutoScrolledRef.current = false;
-        if (onConversationOpen) {
-          onConversationOpen(normalized.id, normalized.updated_at);
+    const openInitial = async () => {
+      if (initialConversationId && conversations.length > 0 && !selectedConversation) {
+        const conv = conversations.find(c => c.id === initialConversationId);
+        if (conv) {
+          const normalized = normalizeConversation(conv);
+          setSelectedConversation({ ...normalized, messages: [] });
+          await fetchConversationMessages(normalized.id);
+          hasAutoScrolledRef.current = false;
+          if (onConversationOpen) {
+            onConversationOpen(normalized.id, normalized.updated_at);
+          }
         }
       }
-    }
-  }, [initialConversationId, conversations, selectedConversation, onConversationOpen]);
+    };
+    openInitial();
+  }, [initialConversationId, conversations, selectedConversation, onConversationOpen, fetchConversationMessages]);
 
   useEffect(() => {
     fetchCurrentUserData();
@@ -384,15 +459,15 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       // Fetch the conversation
       const { data: conversation, error: fetchError } = await supabase
         .from('dms')
-        .select('*')
+        .select('id, user1_id, user2_id, user1_username, user2_username, updated_at')
         .eq('id', conversationId)
         .single();
 
       if (fetchError) throw fetchError;
 
       const normalized = normalizeConversation(conversation);
-      setSelectedConversation(normalized);
-      setMessageLimit(Math.min(DM_PAGE_SIZE, normalized.messages.length));
+      setSelectedConversation({ ...normalized, messages: [] });
+      await fetchConversationMessages(normalized.id);
       hasAutoScrolledRef.current = false;
       if (onConversationOpen) {
         onConversationOpen(normalized.id, normalized.updated_at);
@@ -576,9 +651,9 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                         return (
                           <button
                             key={conversation.id}
-                            onClick={() => {
-                              setSelectedConversation(conversation);
-                              setMessageLimit(Math.min(DM_PAGE_SIZE, conversation.messages.length));
+                            onClick={async () => {
+                              setSelectedConversation({ ...conversation, messages: [] });
+                              await fetchConversationMessages(conversation.id);
                               hasAutoScrolledRef.current = false;
                               if (onConversationOpen) {
                                 onConversationOpen(
