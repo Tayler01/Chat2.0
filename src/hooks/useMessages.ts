@@ -193,16 +193,23 @@ export function useMessages(userId: string | null) {
     try {
       await attempt();
       return true;
-    } catch (err) {
+    } catch (err1) {
       try {
         supabase.realtime.connect();
+        await new Promise((r) => setTimeout(r, 500));
         await attempt();
         return true;
       } catch (err2) {
-        setError(
-          err2 instanceof Error ? err2.message : 'Failed to send message'
-        );
-        return false;
+        try {
+          await supabase.auth.refreshSession();
+          await attempt();
+          return true;
+        } catch (err3) {
+          setError(
+            err3 instanceof Error ? err3.message : 'Failed to send message'
+          );
+          return false;
+        }
       }
     }
   };

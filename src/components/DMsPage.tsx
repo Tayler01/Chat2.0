@@ -418,19 +418,34 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   const sendMessage = async (): Promise<boolean> => {
     if (!selectedConversation || !newMessage.trim()) return false;
-
-    try {
+    const attempt = async () => {
       await supabase.rpc('append_dm_message', {
         conversation_id: selectedConversation.id,
         sender_id: currentUser.id,
         message_text: newMessage.trim()
       });
-
       await updatePresence();
+    };
+
+    try {
+      await attempt();
       return true;
-    } catch (err) {
-      console.error('Error sending message:', err);
-      return false;
+    } catch (err1) {
+      try {
+        supabase.realtime.connect();
+        await new Promise((r) => setTimeout(r, 500));
+        await attempt();
+        return true;
+      } catch (err2) {
+        try {
+          await supabase.auth.refreshSession();
+          await attempt();
+          return true;
+        } catch (err3) {
+          console.error('Error sending message:', err3);
+          return false;
+        }
+      }
     }
   };
 
