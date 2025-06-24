@@ -320,6 +320,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   const fetchUsers = useCallback(async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('users')
         .select('id, username, avatar_url, avatar_color, bio')
@@ -331,13 +332,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       await updatePresence();
     } catch (err) {
       console.error('Error fetching users:', err);
+      setUsers([]); // Set empty array on error
     }
   }, [currentUser.id]);
 
   const fetchConversations = useCallback(async () => {
     try {
-      setLoading(true);
-
       const { data, error } = await supabase
         .from('dms')
         .select(
@@ -351,10 +351,18 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       await updatePresence();
     } catch (err) {
       console.error('Error fetching conversations:', err);
+      setConversations([]); // Set empty array on error
+    }
+  }, [currentUser.id]);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      await Promise.all([fetchUsers(), fetchConversations()]);
     } finally {
       setLoading(false);
     }
-  }, [currentUser.id]);
+  }, [fetchUsers, fetchConversations]);
 
   const fetchConversationMessages = useCallback(
     async (conversationId: string) => {
@@ -403,8 +411,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   useEffect(() => {
     fetchCurrentUserData();
-    fetchUsers();
-    fetchConversations();
+    fetchData();
 
     setupRealtimeSubscription();
 
@@ -414,14 +421,13 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     // We intentionally omit setupRealtimeSubscription from deps to avoid
     // resetting the subscription whenever conversations update
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchCurrentUserData, fetchUsers, fetchConversations, cleanupConnections]);
+  }, [fetchCurrentUserData, fetchData, cleanupConnections]);
 
   // Refresh users and conversations when the page regains focus or becomes
   // visible. This helps recover if the tab was idle for a while.
   useEffect(() => {
     const handleRefresh = () => {
-      fetchUsers();
-      fetchConversations();
+      fetchData();
       updatePresence();
     };
 
@@ -438,7 +444,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       window.removeEventListener('focus', handleRefresh);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [fetchUsers, fetchConversations]);
+  }, [fetchData]);
 
   useEffect(() => {
     if (!selectedConversation) return;
@@ -497,18 +503,31 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         other_username: user.username
       });
 
-      if (error) throw error;
-
-      // Fetch the conversation metadata
-      const { data: conversation, error: fetchError } = await supabase
-        .from('dms')
-        .select(
-          'id,user1_id,user2_id,user1_username,user2_username,updated_at'
-        )
-        .eq('id', conversationId)
-        .single();
-
       if (fetchError) throw fetchError;
+
+      const normalized = normalizeConversation(conversation);
+      setSelectedConversation(normalized);
+      fetchConversationMessages(normalized.id);
+      setMessageLimit(DM_PAGE_SIZE);
+      hasAutoScrolledRef.current = false;
+      if (onConversationOpen) {
+        onConversationOpen(normalized.id, normalized.updated_at);
+      }
+      
+      // Add to conversations if not already there
+      setConversations(prev => {
+        const exists = prev.find(conv => conv.id === normalized.id);
+        if (exists) return prev;
+        return [normalized, ...prev];
+      });
+      await updatePresence();
+    } catch (err) {
+      console.error('Error starting conversation:', err);
+    }
+  };
+
+  // Remove the old implementations and keep only the new ones
+
 
       const normalized = normalizeConversation(conversation);
       setSelectedConversation(normalized);
@@ -537,11 +556,22 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     try {
       // Keep the input focused so the keyboard remains open
       inputRef.current?.focus();
-      await supabase.rpc('append_dm_message', {
-        conversation_id: selectedConversation.id,
-        sender_id: currentUser.id,
-        message_text: newMessage.trim()
-      });
+      
+      const { error } = await supabase
+        .from('dm_messages')
+        .insert({
+          conversation_id: selectedConversation.id,
+          sender_id: currentUser.id,
+          content: newMessage.trim()
+        });
+
+      if (error) throw error;
+
+      // Update the conversation's updated_at timestamp
+      await supabase
+        .from('dms')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', selectedConversation.id);
 
       setNewMessage('');
       localStorage.removeItem(draftKey);
@@ -555,9 +585,86 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     }
   };
 
+  const createConversation = async (otherUserId: string, otherUsername: string) => {
+    try {
+      // Ensure user1_id < user2_id for the constraint
+      const user1_id = currentUser.id < otherUserId ? currentUser.id : otherUserId;
+      const user2_id = currentUser.id < otherUserId ? otherUserId : currentUser.id;
+      const user1_username = currentUser.id < otherUserId ? currentUser.username : otherUsername;
+      const user2_username = currentUser.id < otherUserId ? otherUsername : currentUser.username;
+
+      const { data, error } = await supabase
+        .from('dms')
+        .insert({
+          user1_id,
+          user2_id,
+          user1_username,
+          user2_username
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error('Error creating conversation:', err);
+      throw err;
+    }
+  };
+
+  const startConversation = async (user: User) => {
+    try {
+      // Check if conversation already exists
+      let conversation = conversations.find(
+        (c) =>
+          (c.user1_id === currentUser.id && c.user2_id === user.id) ||
+          (c.user2_id === currentUser.id && c.user1_id === user.id)
+      );
+
+      if (!conversation) {
+        // Try to fetch existing conversation from database
+        const { data: existingConv } = await supabase
+          .from('dms')
+          .select('*')
+          .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${user.id}),and(user1_id.eq.${user.id},user2_id.eq.${currentUser.id})`)
+          .single();
+
+        if (existingConv) {
+          conversation = normalizeConversation(existingConv);
+        } else {
+          // Create new conversation
+          conversation = normalizeConversation(await createConversation(user.id, user.username));
+        }
+
+        // Add to local conversations
+        setConversations(prev => [conversation!, ...prev]);
+      }
+
+      setSelectedConversation(conversation);
+      
+      // Fetch messages if not already loaded
+      if (conversation.messages.length === 0) {
+        fetchConversationMessages(conversation.id);
+      }
+      
+      setMessageLimit(DM_PAGE_SIZE);
+      hasAutoScrolledRef.current = false;
+      
+      if (onConversationOpen) {
+        onConversationOpen(conversation.id, conversation.updated_at);
+      }
+      
+      await updatePresence();
+    } catch (err) {
+      console.error('Error starting conversation:', err);
+      show('Failed to start conversation. Please try again.');
+    }
+  };
+
   const handleBackToContacts = useCallback(() => {
     setSelectedConversation(null);
     setShowReactionPicker(null);
+    // Refresh data when going back to contacts
     fetchUsers();
     fetchConversations();
   }, [fetchUsers, fetchConversations]);
@@ -567,21 +674,42 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
     setIsReacting(true);
     try {
-      await supabase.rpc('toggle_dm_reaction', {
-        message_id: messageId,
-        user_id: currentUser.id,
-        emoji: emoji
-      });
-      setShowReactionPicker(null);
-    } catch (error) {
-      console.error('Error toggling DM reaction:', error);
-      // Show user-friendly error message
-      show('Failed to add reaction. Please try again.');
-    } finally {
-      setIsReacting(false);
-    }
-  };
+      // Get current message
+      const message = selectedConversation.messages.find(m => m.id === messageId);
+      if (!message) return;
 
+      const reactions = message.reactions || {};
+      const userReactions = reactions[emoji] || [];
+      
+      let newUserReactions;
+      if (userReactions.includes(currentUser.id)) {
+        // Remove reaction
+        newUserReactions = userReactions.filter(id => id !== currentUser.id);
+      } else {
+        // Add reaction
+        newUserReactions = [...userReactions, currentUser.id];
+      }
+
+      const newReactions = {
+        ...reactions,
+        [emoji]: newUserReactions.length > 0 ? newUserReactions : undefined
+      };
+
+      // Remove undefined values
+      Object.keys(newReactions).forEach(key => {
+        if (newReactions[key] === undefined) {
+          delete newReactions[key];
+        }
+      });
+
+      const { error } = await supabase
+        .from('dm_messages')
+        .update({ reactions: newReactions })
+        .eq('id', messageId);
+
+      if (error) throw error;
+      
+      setShowReactionPicker(null);
   const getReactionCount = (reactions: Record<string, string[]> | undefined, emoji: string) => {
     if (!reactions) return 0;
     const users = reactions[emoji] || [];
