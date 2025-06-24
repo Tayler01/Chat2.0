@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { withTimeout } from '../utils/withTimeout';
 import { User } from '@supabase/supabase-js';
 
 export interface AuthUser {
@@ -52,9 +53,10 @@ export function useAuth() {
 
   const refreshSession = async () => {
     console.log('🔄 [useAuth] Refreshing session');
-    
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      await withTimeout(supabase.auth.refreshSession(), 5000);
+      const { data: { session } } = await withTimeout(supabase.auth.getSession(), 5000);
       
       console.log('📋 [useAuth] Session refresh result:', {
         hasSession: !!session,
