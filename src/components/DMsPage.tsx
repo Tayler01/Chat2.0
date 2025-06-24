@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { MessageSquare, Send, X, ArrowLeft } from 'lucide-react';
+import { AvatarImage } from './AvatarImage';
 import { ContactSidebar } from './dms/ContactSidebar';
 import { DMMessageItem } from './dms/DMMessageItem';
 import { useDirectMessages } from '../hooks/useDirectMessages';
@@ -520,21 +521,14 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                     return (
                       <>
                           <div className="relative w-10 h-10 ring-2 ring-blue-400/30 rounded-full">
-                            <div className="w-full h-full rounded-full overflow-hidden">
-                              {otherUserData.avatar_url ? (
-                                <img
-                                  src={otherUserData.avatar_url}
-                                  alt={otherUserData.username}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div
-                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                                  style={{ backgroundColor: otherUserData.avatar_color }}
-                                >
-                                  {otherUserData.username.charAt(0).toUpperCase()}
-                                </div>
-                              )}
+                          <div className="w-full h-full rounded-full overflow-hidden">
+                              <AvatarImage
+                                src={otherUserData.avatar_url}
+                                alt={otherUserData.username}
+                                className="w-full h-full object-cover"
+                                fallbackColor={otherUserData.avatar_color}
+                                fallbackText={otherUserData.username.charAt(0).toUpperCase()}
+                              />
                             </div>
                             {activeUserIds.includes(otherUserData.id) && (
                               <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />

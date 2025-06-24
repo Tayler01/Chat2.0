@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, MessageSquare, Clock, Users, ArrowLeft } from 'lucide-react';
+import { AvatarImage } from '../AvatarImage';
 
 interface User {
   id: string;
@@ -149,13 +150,13 @@ export function ContactSidebar({
                           <div className="flex items-center gap-3">
                             <div className="relative w-10 h-10 flex-shrink-0 ring-2 ring-gray-600/30 rounded-full">
                               <div className="w-full h-full rounded-full overflow-hidden">
-                                {otherUserData.avatar_url ? (
-                                  <img src={otherUserData.avatar_url} alt={otherUserData.username} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: otherUserData.avatar_color }}>
-                                    {otherUserData.username.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
+                                <AvatarImage
+                                  src={otherUserData.avatar_url}
+                                  alt={otherUserData.username}
+                                  className="w-full h-full object-cover"
+                                  fallbackColor={otherUserData.avatar_color}
+                                  fallbackText={otherUserData.username.charAt(0).toUpperCase()}
+                                />
                               </div>
                               {activeUserIds.includes(otherUserData.id) && <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />}
                             </div>
@@ -195,13 +196,13 @@ export function ContactSidebar({
                         <div className="flex items-center gap-3">
                           <div className="relative w-10 h-10 flex-shrink-0 ring-2 ring-gray-600/30 rounded-full">
                             <div className="w-full h-full rounded-full overflow-hidden">
-                              {user.avatar_url ? (
-                                <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: user.avatar_color }}>
-                                  {user.username.charAt(0).toUpperCase()}
-                                </div>
-                              )}
+                              <AvatarImage
+                                src={user.avatar_url}
+                                alt={user.username}
+                                className="w-full h-full object-cover"
+                                fallbackColor={user.avatar_color}
+                                fallbackText={user.username.charAt(0).toUpperCase()}
+                              />
                             </div>
                             {activeUserIds.includes(user.id) && <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />}
                           </div>

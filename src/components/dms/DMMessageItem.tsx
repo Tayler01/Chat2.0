@@ -1,5 +1,6 @@
 import React from 'react';
 import { Smile } from 'lucide-react';
+import { AvatarImage } from '../AvatarImage';
 
 interface User {
   id: string;
@@ -71,19 +72,21 @@ export function DMMessageItem({
       >
         <div className="w-full h-full rounded-full overflow-hidden">
           {isOwn ? (
-            currentUserData?.avatar_url ? (
-              <img src={currentUserData.avatar_url} alt={currentUser.username} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: currentUserData?.avatar_color || currentUser.avatar_color }}>
-                {currentUser.username.charAt(0).toUpperCase()}
-              </div>
-            )
-          ) : otherUserData.avatar_url ? (
-            <img src={otherUserData.avatar_url} alt={otherUserData.username} className="w-full h-full object-cover" />
+            <AvatarImage
+              src={currentUserData?.avatar_url}
+              alt={currentUser.username}
+              className="w-full h-full object-cover"
+              fallbackColor={currentUserData?.avatar_color || currentUser.avatar_color}
+              fallbackText={currentUser.username.charAt(0).toUpperCase()}
+            />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: otherUserData.avatar_color }}>
-              {otherUserData.username.charAt(0).toUpperCase()}
-            </div>
+            <AvatarImage
+              src={otherUserData.avatar_url}
+              alt={otherUserData.username}
+              className="w-full h-full object-cover"
+              fallbackColor={otherUserData.avatar_color}
+              fallbackText={otherUserData.username.charAt(0).toUpperCase()}
+            />
           )}
         </div>
         {activeUserIds.includes(message.sender_id) &&
