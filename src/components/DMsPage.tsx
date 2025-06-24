@@ -64,6 +64,10 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const { users, conversations, loading, fetchConversationMessages, setConversations } = useDirectMessages(currentUser.id);
   const [selectedConversation, setSelectedConversation] = useState<DMConversation | null>(null);
   const [newMessage, setNewMessage] = useState('');
+  const ensureConnection = () => {
+    updatePresence().catch(() => {});
+  };
+  const getDraftKey = (id: string) => `dm_draft_${id}`;
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'recent' | 'all'>('all');
   const [currentUserData, setCurrentUserData] = useState<User | null>(null);
@@ -79,6 +83,18 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
   const [isReacting, setIsReacting] = useState(false);
   const { show } = useToast();
+
+  useEffect(() => {
+    if (!selectedConversation) return;
+    const saved = localStorage.getItem(getDraftKey(selectedConversation.id));
+    setNewMessage(saved || '');
+  }, [selectedConversation?.id]);
+
+  useEffect(() => {
+    if (selectedConversation) {
+      localStorage.setItem(getDraftKey(selectedConversation.id), newMessage);
+    }
+  }, [newMessage, selectedConversation?.id]);
 
   const getConversationWithUser = useCallback(
     (userId: string) =>
@@ -399,8 +415,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     }
   };
 
-  const sendMessage = async () => {
-    if (!selectedConversation || !newMessage.trim()) return;
+  const sendMessage = async (): Promise<boolean> => {
+    if (!selectedConversation || !newMessage.trim()) return false;
 
     try {
       await supabase.rpc('append_dm_message', {
@@ -409,10 +425,11 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         message_text: newMessage.trim()
       });
 
-      setNewMessage('');
       await updatePresence();
+      return true;
     } catch (err) {
       console.error('Error sending message:', err);
+      return false;
     }
   };
 
@@ -598,8 +615,15 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
               {/* Message Input */}
               <div className="p-3 sm:p-4 border-t border-gray-600/50 bg-gray-800/50 safe-area-inset-bottom">
-                <form 
-                  onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const ok = await sendMessage();
+                    if (ok && selectedConversation) {
+                      setNewMessage('');
+                      localStorage.removeItem(getDraftKey(selectedConversation.id));
+                    }
+                  }}
                   className="flex justify-center w-full"
                 >
                   <div className="relative w-full max-w-2xl min-w-0">
@@ -607,7 +631,11 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                       <input
                         type="text"
                         value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                        onChange={(e) => {
+                          setNewMessage(e.target.value);
+                          ensureConnection();
+                        }}
+                        onFocus={ensureConnection}
                         placeholder={`Message ${getOtherUser(selectedConversation).username}...`}
                         className="w-full bg-transparent placeholder-gray-400 text-sm sm:text-base focus:outline-none"
                         style={{
