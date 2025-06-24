@@ -5,6 +5,15 @@ import { Message } from '../types/message';
 
 const PAGE_SIZE = 20;
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), timeoutMs)
+    ),
+  ]);
+}
+
 let externalMessagesRefresh: (() => void) | null = null;
 
 export function triggerMessagesRefresh() {
@@ -224,11 +233,11 @@ export function useMessages(userId: string | null) {
       timestamp: new Date().toISOString()
     });
 
-    // Quick auth check without aggressive timeout
+    // Quick auth check with timeout so we don't hang indefinitely
     console.log('🔐 [sendMessage] Checking auth session');
     let session = null;
     try {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await withTimeout(supabase.auth.getSession(), 5000);
       session = data.session;
       console.log('📋 [sendMessage] Auth check result:', {
         hasSession: !!session,
@@ -236,8 +245,8 @@ export function useMessages(userId: string | null) {
       });
       if (!session) {
         console.log('🔄 [sendMessage] No session found, refreshing');
-        await supabase.auth.refreshSession();
-        const { data: refreshed } = await supabase.auth.getSession();
+        await withTimeout(supabase.auth.refreshSession(), 5000);
+        const { data: refreshed } = await withTimeout(supabase.auth.getSession(), 5000);
         session = refreshed.session;
         console.log('📋 [sendMessage] Session after refresh:', {
           hasSession: !!session,
