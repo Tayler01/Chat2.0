@@ -10,6 +10,12 @@ export interface AuthUser {
   avatar_url?: string | null;
 }
 
+let externalRefreshSession: (() => Promise<void>) | null = null;
+
+export function triggerAuthRefresh() {
+  return externalRefreshSession ? externalRefreshSession() : Promise.resolve();
+}
+
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,18 +50,20 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, [hasCheckedSession]);
 
+  const refreshSession = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.user) {
+      await fetchUserProfile(session.user);
+    } else {
+      setUser(null);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const refreshSession = async () => {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchUserProfile(session.user);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    };
+    externalRefreshSession = refreshSession;
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
@@ -67,6 +75,9 @@ export function useAuth() {
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
+      if (externalRefreshSession === refreshSession) {
+        externalRefreshSession = null;
+      }
       window.removeEventListener('focus', refreshSession);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
@@ -115,5 +126,6 @@ export function useAuth() {
     loading,
     signOut,
     updateUser,
+    refreshSession,
   };
 }
