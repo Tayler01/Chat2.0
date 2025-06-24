@@ -3,6 +3,7 @@ import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-
 import { Smile } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
+import { Avatar } from './Avatar';
 
 interface User {
   id: string;
@@ -453,6 +454,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     }
   };
 
+  const handleBackToContacts = useCallback(() => {
+    setSelectedConversation(null);
+    fetchUsers();
+    fetchConversations();
+  }, [fetchUsers, fetchConversations]);
+
   const handleDMReaction = async (messageId: string, emoji: string) => {
     if (!selectedConversation || !currentUser.id || isReacting) return;
 
@@ -620,20 +627,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                             <div className="flex items-center gap-3">
                               <div className="relative w-10 h-10 flex-shrink-0 ring-2 ring-gray-600/30 rounded-full">
                                 <div className="w-full h-full rounded-full overflow-hidden">
-                                  {otherUserData.avatar_url ? (
-                                    <img
-                                      src={otherUserData.avatar_url}
-                                      alt={otherUserData.username}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div
-                                      className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                                      style={{ backgroundColor: otherUserData.avatar_color }}
-                                    >
-                                      {otherUserData.username.charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
+                                  <Avatar
+                                    url={otherUserData.avatar_url}
+                                    alt={otherUserData.username}
+                                    color={otherUserData.avatar_color}
+                                    className="w-full h-full object-cover"
+                                  />
                                 </div>
                                 {activeUserIds.includes(otherUserData.id) && (
                                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
@@ -688,20 +687,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                           <div className="flex items-center gap-3">
                             <div className="relative w-10 h-10 flex-shrink-0 ring-2 ring-gray-600/30 rounded-full">
                               <div className="w-full h-full rounded-full overflow-hidden">
-                                {user.avatar_url ? (
-                                  <img
-                                    src={user.avatar_url}
-                                    alt={user.username}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div
-                                    className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                                    style={{ backgroundColor: user.avatar_color }}
-                                  >
-                                    {user.username.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
+                                <Avatar
+                                  url={user.avatar_url}
+                                  alt={user.username}
+                                  color={user.avatar_color}
+                                  className="w-full h-full object-cover"
+                                />
                               </div>
                               {activeUserIds.includes(user.id) && (
                                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
@@ -746,9 +737,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
               <div className="p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-gray-600/50 flex items-center justify-between backdrop-blur-sm">
                 {/* Mobile back button */}
                 <button
-                  onClick={() => {
-                    setSelectedConversation(null);
-                  }}
+                  onClick={handleBackToContacts}
                   className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded-xl transition-colors mr-3"
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -761,20 +750,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                       <>
                           <div className="relative w-10 h-10 ring-2 ring-blue-400/30 rounded-full">
                             <div className="w-full h-full rounded-full overflow-hidden">
-                              {otherUserData.avatar_url ? (
-                                <img
-                                  src={otherUserData.avatar_url}
-                                  alt={otherUserData.username}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div
-                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                                  style={{ backgroundColor: otherUserData.avatar_color }}
-                                >
-                                  {otherUserData.username.charAt(0).toUpperCase()}
-                                </div>
-                              )}
+                              <Avatar
+                                url={otherUserData.avatar_url}
+                                alt={otherUserData.username}
+                                color={otherUserData.avatar_color}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
                             {activeUserIds.includes(otherUserData.id) && (
                               <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full ring-2 ring-gray-900 z-10" />
@@ -791,7 +772,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                   })()}
                 </div>
                 <button
-                  onClick={() => setSelectedConversation(null)}
+                  onClick={handleBackToContacts}
                   className="hidden md:block p-2 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded-xl transition-colors"
                 >
                   <X className="w-5 h-5" />
@@ -830,37 +811,25 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                         >
                           <div className="w-full h-full rounded-full overflow-hidden">
                             {message.sender_id === currentUser.id ? (
-                              currentUserData?.avatar_url ? (
-                                <img
-                                  src={currentUserData.avatar_url}
-                                  alt={currentUser.username}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div
-                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                                  style={{ backgroundColor: currentUserData?.avatar_color || currentUser.avatar_color }}
-                                >
-                                  {currentUser.username.charAt(0).toUpperCase()}
-                                </div>
-                              )
-                            ) : (() => {
-                              const otherUserData = getOtherUserData(selectedConversation);
-                              return otherUserData.avatar_url ? (
-                                <img
-                                  src={otherUserData.avatar_url}
-                                  alt={otherUserData.username}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div
-                                  className="w-full h-full flex items-center justify-center text-white text-sm font-bold"
-                                  style={{ backgroundColor: otherUserData.avatar_color }}
-                                >
-                                  {otherUserData.username.charAt(0).toUpperCase()}
-                                </div>
-                              );
-                            })()}
+                              <Avatar
+                                url={currentUserData?.avatar_url}
+                                alt={currentUser.username}
+                                color={currentUserData?.avatar_color || currentUser.avatar_color}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              (() => {
+                                const otherUserData = getOtherUserData(selectedConversation);
+                                return (
+                                  <Avatar
+                                    url={otherUserData.avatar_url}
+                                    alt={otherUserData.username}
+                                    color={otherUserData.avatar_color}
+                                    className="w-full h-full object-cover"
+                                  />
+                                );
+                              })()
+                            )}
                           </div>
                           {activeUserIds.includes(message.sender_id) &&
                             latestMessageByUser.get(message.sender_id) === message.id && (

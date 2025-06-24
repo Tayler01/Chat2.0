@@ -3,6 +3,7 @@ import { X, User, Mail, Palette, Save, Upload, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ChatHeader } from './ChatHeader';
 import { avatarColors } from '../utils/avatarColors';
+import { Avatar } from './Avatar';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -271,20 +272,12 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
             <div className="px-4 sm:px-6 pt-0 pb-4 sm:pb-6 relative space-y-3 sm:space-y-4 flex-1">
               <div className="flex items-end space-x-4">
                 <div className="-mt-8 sm:-mt-12 w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-gray-600 ring-4 ring-gray-800 flex-shrink-0">
-                  {profileData.avatar_url ? (
-                    <img
-                      src={profileData.avatar_url}
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div 
-                      className="w-full h-full flex items-center justify-center text-white text-lg sm:text-2xl font-bold"
-                      style={{ backgroundColor: profileData.avatar_color }}
-                    >
-                      {profileData.username.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar
+                    url={profileData.avatar_url}
+                    alt="Avatar"
+                    color={profileData.avatar_color}
+                    className="w-full h-full object-cover text-lg sm:text-2xl"
+                  />
                 </div>
                 <div className="flex-1">
                   <h2 className="text-lg sm:text-xl font-bold text-white">{profileData.username}</h2>
@@ -407,20 +400,12 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
                       style={editData.avatar_url ? { border: 'none' } : {}}
                       onClick={() => document.getElementById('avatar-upload')?.click()}
                     >
-                      {editData.avatar_url ? (
-                        <img
-                          src={editData.avatar_url}
-                          alt="Avatar preview"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div 
-                          className="w-full h-full flex items-center justify-center text-white text-lg sm:text-xl font-bold"
-                          style={{ backgroundColor: editData.avatar_color }}
-                        >
-                          {editData.username.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                      <Avatar
+                        url={editData.avatar_url}
+                        alt="Avatar preview"
+                        color={editData.avatar_color}
+                        className="w-full h-full object-cover text-lg sm:text-xl flex items-center justify-center"
+                      />
                       {uploadingAvatar && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
