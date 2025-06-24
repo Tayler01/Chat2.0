@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react';
+import { Virtuoso } from 'react-virtuoso';
 import { MessageBubble } from './MessageBubble';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
@@ -42,6 +43,36 @@ export function ChatArea({
     });
     return map;
   }, [messages]);
+
+  type VirtualItem =
+    | { type: 'date'; label: string }
+    | { type: 'message'; message: Message; showTimestamp: boolean; showActiveDot: boolean };
+
+  const virtualItems = React.useMemo(() => {
+    const items: VirtualItem[] = [];
+    let lastDateLabel: string | null = null;
+
+    messages.forEach((message, index) => {
+      const dateLabel = formatDateGroup(message.created_at);
+      const nextMessage = messages[index + 1];
+      const nextDateLabel = nextMessage ? formatDateGroup(nextMessage.created_at) : null;
+
+      if (dateLabel !== lastDateLabel) {
+        items.push({ type: 'date', label: dateLabel });
+        lastDateLabel = dateLabel;
+      }
+
+      items.push({
+        type: 'message',
+        message,
+        showActiveDot: latestMessageByUser.get(message.user_id) === message.id,
+        showTimestamp:
+          !nextMessage || nextMessage.user_id !== message.user_id || dateLabel !== nextDateLabel,
+      });
+    });
+
+    return items;
+  }, [messages, latestMessageByUser]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -113,53 +144,37 @@ export function ChatArea({
 
   return (
     <>
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
-      >
-        {(() => {
-          const items: JSX.Element[] = [];
-          let lastDateLabel: string | null = null;
-
-        messages.forEach((message, index) => {
-          const dateLabel = formatDateGroup(message.created_at);
-          const nextMessage = messages[index + 1];
-          const nextDateLabel = nextMessage
-            ? formatDateGroup(nextMessage.created_at)
-            : null;
-
-          if (dateLabel !== lastDateLabel) {
-            items.push(
-              <div key={`date-${dateLabel}`} className="my-4">
-                <DateDivider label={dateLabel} />
+      <Virtuoso
+        data={virtualItems}
+        scrollerRef={(ref) => {
+          containerRef.current = ref as HTMLDivElement | null;
+        }}
+        className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 bg-gray-900 relative"
+        followOutput="smooth"
+        itemContent={(_, item) => {
+          if (item.type === 'date') {
+            return (
+              <div className="my-4">
+                <DateDivider label={item.label} />
               </div>
             );
-            lastDateLabel = dateLabel;
           }
 
-          items.push(
+          return (
             <MessageBubble
-              key={message.id}
-              message={message}
-              isOwnMessage={message.user_id === currentUserId}
+              message={item.message}
+              isOwnMessage={item.message.user_id === currentUserId}
               currentUserId={currentUserId}
               onUserClick={onUserClick}
               activeUserIds={activeUserIds}
-              showActiveDot={latestMessageByUser.get(message.user_id) === message.id}
-              showTimestamp={
-                !nextMessage ||
-                nextMessage.user_id !== message.user_id ||
-                dateLabel !== nextDateLabel
-              }
+              showActiveDot={item.showActiveDot}
+              showTimestamp={item.showTimestamp}
             />
           );
-        });
+        }}
+        components={{ Footer: () => <div ref={messagesEndRef} /> }}
+      />
 
-          return items;
-        })()}
-        <div ref={messagesEndRef} />
-      </div>
-      
     </>
   );
 }
