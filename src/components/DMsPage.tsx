@@ -64,6 +64,18 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const [newMessage, setNewMessage] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Refs to keep the latest values inside callbacks without re-creating them
+  const conversationsRef = useRef<DMConversation[]>([]);
+  const selectedConversationRef = useRef<DMConversation | null>(null);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
+
+  useEffect(() => {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
+
   const draftKey = selectedConversation ? `dmDraft-${selectedConversation.id}` : 'dmDraft';
 
   useEffect(() => {
@@ -191,7 +203,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
             });
 
             // Update selected conversation if it's the same one
-            if (selectedConversation?.id === updatedConversation.id) {
+            if (selectedConversationRef.current?.id === updatedConversation.id) {
               setSelectedConversation(updatedConversation);
             }
           }
@@ -202,7 +214,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         { event: 'INSERT', schema: 'public', table: 'dm_messages' },
         (payload) => {
           const message = payload.new as DMMessage & { conversation_id: string };
-          const isUserInvolved = conversations.some(
+          const isUserInvolved = conversationsRef.current.some(
             (c) =>
               c.id === message.conversation_id &&
               (c.user1_id === currentUser.id || c.user2_id === currentUser.id)
@@ -221,7 +233,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
             )
           );
 
-          if (selectedConversation?.id === message.conversation_id) {
+          if (selectedConversationRef.current?.id === message.conversation_id) {
             setSelectedConversation((prev) =>
               prev
                 ? {
@@ -237,7 +249,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       .subscribe();
 
     channelRef.current = channel;
-  }, [cleanupConnections, selectedConversation?.id, currentUser.id, conversations]);
+  }, [cleanupConnections, currentUser.id]);
 
   // Handle scroll detection to prevent auto-scroll when user is manually scrolling
   const handleScroll = useCallback(() => {
@@ -383,14 +395,10 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     return () => {
       cleanupConnections();
     };
-  }, [
-    selectedConversation?.id,
-    fetchCurrentUserData,
-    fetchUsers,
-    fetchConversations,
-    setupRealtimeSubscription,
-    cleanupConnections
-  ]);
+    // We intentionally omit setupRealtimeSubscription from deps to avoid
+    // resetting the subscription whenever conversations update
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchCurrentUserData, fetchUsers, fetchConversations, cleanupConnections]);
 
   // Refresh users and conversations when the page regains focus or becomes
   // visible. This helps recover if the tab was idle for a while.
