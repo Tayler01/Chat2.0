@@ -1,19 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface Database {
   public: {
@@ -29,7 +19,6 @@ export interface Database {
           bio: string | null;
           created_at: string | null;
           updated_at: string | null;
-          last_active: string | null;
         };
         Insert: {
           id: string;
@@ -41,7 +30,6 @@ export interface Database {
           bio?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
-          last_active?: string | null;
         };
         Update: {
           id?: string;
@@ -53,7 +41,6 @@ export interface Database {
           bio?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
-          last_active?: string | null;
         };
       };
       messages: {
@@ -65,7 +52,6 @@ export interface Database {
           avatar_color: string;
           created_at: string | null;
           avatar_url: string | null;
-          reactions: Record<string, string[]> | null;
         };
         Insert: {
           id?: string;
@@ -75,7 +61,6 @@ export interface Database {
           avatar_color?: string;
           created_at?: string | null;
           avatar_url?: string | null;
-          reactions?: Record<string, string[]> | null;
         };
         Update: {
           id?: string;
@@ -85,7 +70,26 @@ export interface Database {
           avatar_color?: string;
           created_at?: string | null;
           avatar_url?: string | null;
-          reactions?: Record<string, string[]> | null;
+        };
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          subscription: any;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          subscription: any;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          subscription?: any;
+          created_at?: string | null;
         };
       };
       dms: {
@@ -95,7 +99,7 @@ export interface Database {
           user2_id: string;
           user1_username: string;
           user2_username: string;
-          messages: Record<string, unknown>[] | null;
+          messages: any | null;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -105,7 +109,7 @@ export interface Database {
           user2_id: string;
           user1_username: string;
           user2_username: string;
-          messages?: Record<string, unknown>[] | null;
+          messages?: any | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
@@ -115,7 +119,7 @@ export interface Database {
           user2_id?: string;
           user1_username?: string;
           user2_username?: string;
-          messages?: Record<string, unknown>[] | null;
+          messages?: any | null;
           created_at?: string | null;
           updated_at?: string | null;
         };

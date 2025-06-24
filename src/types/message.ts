@@ -6,7 +6,6 @@ export interface Message {
   created_at: string;
   avatar_color: string;
   avatar_url?: string | null;
-  reactions?: Record<string, string[]>;
 }
 
 export interface User {

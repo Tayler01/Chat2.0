@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, UserCircle, Users, MessageCircle, Menu, X } from 'lucide-react';
+import { LogOut, User, UserCircle, Users, MessageCircle, Menu, X } from 'lucide-react';
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -9,11 +9,9 @@ interface ChatHeaderProps {
   onShowProfile: () => void;
   currentPage: PageType;
   onPageChange: (page: PageType) => void;
-  hasUnreadDMs?: boolean;
-  activeUsers?: { id: string; username: string; avatar_url: string | null; avatar_color: string; }[];
 }
 
-export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, onPageChange, hasUnreadDMs, activeUsers = [] }: ChatHeaderProps) {
+export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, onPageChange }: ChatHeaderProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
 
@@ -23,17 +21,19 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
   };
 
   return (
-    <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 sm:p-4 shadow-lg sticky top-0 left-0 right-0 z-50 safe-area-inset-top">
+    <div className="bg-gray-800 border-b border-gray-700 p-4 shadow-lg relative">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-6 sm:ml-8">
           {/* Logo */}
           <img 
-            src="https://ik.imagekit.io/cryptolord17/ShadowMessage/ChatGPT%20Image%20Jun%2018,%202025,%2009_32_24%20AM.png?updatedAt=1750267859499"
+            src="https://ik.imagekit.io/cryptolord17/ShadowMessage/ChatGPT%20Image%20Jun%2018,%202025,%2009_32_24%20AM.png?updatedAt=1750253867456"
             alt="ShadowMessage Logo"
-            className="hidden sm:block h-10 w-auto rounded-lg shadow-lg"
+            className="hidden sm:block w-10 h-10 rounded-lg shadow-lg object-cover"
             style={{ 
-              objectFit: 'contain',
-              height: '42px'
+              objectFit: 'cover',
+              objectPosition: 'center',
+              transform: 'scale(4)',
+              transformOrigin: 'center'
             }}
           />
           
@@ -54,7 +54,7 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
             
             <button
               onClick={() => onPageChange('dms')}
-              className={`relative flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
                 currentPage === 'dms'
                   ? 'bg-gray-600 text-white shadow-lg'
                   : 'text-gray-300 hover:text-white hover:bg-gray-700'
@@ -62,9 +62,6 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
               title="Direct Messages"
             >
               <MessageCircle className="w-5 h-5" />
-              {hasUnreadDMs && (
-                <span className="absolute -top-1 -right-1 block w-2 h-2 bg-red-500 rounded-full" />
-              )}
               <span className="text-sm font-medium">DMs</span>
             </button>
           </div>
@@ -72,12 +69,9 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
           {/* Mobile Navigation Toggle */}
           <button
             onClick={() => setShowMobileNav(!showMobileNav)}
-            className="relative md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors ml-2"
+            className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors ml-2"
           >
             {showMobileNav ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            {hasUnreadDMs && !showMobileNav && (
-              <span className="absolute -top-1 -right-1 block w-2 h-2 bg-red-500 rounded-full" />
-            )}
           </button>
         </div>
         
@@ -127,36 +121,7 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
           </div>
         </div>
       </div>
-
-      {currentPage === 'group-chat' && activeUsers.length > 0 && (
-        <>
-          {/* Desktop active users */}
-          <div className="hidden md:flex absolute inset-0 pointer-events-none items-center justify-center gap-2">
-            {activeUsers.map((u) => (
-              <div key={u.id} className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-gray-700">
-                {u.avatar_url ? (
-                  <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: u.avatar_color }}>
-                    {u.username.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Mobile active users */}
-          <div className="flex md:hidden absolute inset-0 pointer-events-none items-center justify-center gap-2 px-2">
-            {activeUsers.map((u) => (
-              <div key={u.id} className="flex items-center gap-1 text-[10px] text-gray-300 bg-gray-800/70 px-1 rounded">
-                <span className="w-2 h-2 bg-green-500 rounded-full" />
-                <span className="whitespace-nowrap">{u.username}</span>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
+      
       {/* Mobile Navigation Menu */}
       {showMobileNav && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-gray-800 border-b border-gray-700 shadow-lg z-50">
@@ -187,12 +152,7 @@ export function ChatHeader({ userName, onClearUser, onShowProfile, currentPage, 
                   : 'text-gray-300 hover:text-white hover:bg-gray-700'
               }`}
             >
-              <div className="relative">
-                <MessageCircle className="w-5 h-5" />
-                {hasUnreadDMs && (
-                  <span className="absolute -top-1 -right-1 block w-2 h-2 bg-red-500 rounded-full" />
-                )}
-              </div>
+              <MessageCircle className="w-5 h-5" />
               <span className="font-medium">Direct Messages</span>
             </button>
             
