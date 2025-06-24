@@ -176,78 +176,94 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const setupRealtimeSubscription = useCallback(() => {
     cleanupConnections();
 
-    const channel = supabase
-      .channel('dms_channel')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'dms' },
-        (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const updatedConversation = normalizeConversation(payload.new);
-            
-            // Check if this conversation involves the current user
-            const isUserInvolved = updatedConversation.user1_id === currentUser.id || 
-                                 updatedConversation.user2_id === currentUser.id;
-            
-            if (!isUserInvolved) return;
-            
-            setConversations(prev => {
-              const existingIndex = prev.findIndex(conv => conv.id === updatedConversation.id);
-              if (existingIndex >= 0) {
-                const updated = [...prev];
-                updated[existingIndex] = updatedConversation;
-                return updated.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-              } else {
-                return [updatedConversation, ...prev];
-              }
-            });
+    const handleConversationPayload = (payload: { new: unknown; eventType: string }) => {
+      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+        const updatedConversation = normalizeConversation(payload.new);
 
-            // Update selected conversation if it's the same one
-            if (selectedConversationRef.current?.id === updatedConversation.id) {
-              setSelectedConversation(updatedConversation);
-            }
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'dm_messages' },
-        (payload) => {
-          const message = payload.new as DMMessage & { conversation_id: string };
-          const isUserInvolved = conversationsRef.current.some(
-            (c) =>
-              c.id === message.conversation_id &&
-              (c.user1_id === currentUser.id || c.user2_id === currentUser.id)
-          );
-          if (!isUserInvolved) return;
+        const isUserInvolved =
+          updatedConversation.user1_id === currentUser.id ||
+          updatedConversation.user2_id === currentUser.id;
 
-          setConversations((prev) =>
-            prev.map((c) =>
-              c.id === message.conversation_id
-                ? {
-                    ...c,
-                    messages: [...c.messages, message],
-                    updated_at: message.created_at,
-                  }
-                : c
-            )
-          );
+        if (!isUserInvolved) return;
 
-          if (selectedConversationRef.current?.id === message.conversation_id) {
-            setSelectedConversation((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    messages: [...prev.messages, message],
-                    updated_at: message.created_at,
-                  }
-                : prev
+        setConversations((prev) => {
+          const existingIndex = prev.findIndex((conv) => conv.id === updatedConversation.id);
+          if (existingIndex >= 0) {
+            const updated = [...prev];
+            updated[existingIndex] = updatedConversation;
+            return updated.sort(
+              (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
             );
           }
-        }
-      )
-      .subscribe();
+          return [updatedConversation, ...prev];
+        });
 
+        if (selectedConversationRef.current?.id === updatedConversation.id) {
+          setSelectedConversation(updatedConversation);
+        }
+      }
+    };
+
+    const handleMessagePayload = (payload: { new: DMMessage & { conversation_id: string } }) => {
+      const message = payload.new;
+      const isUserInvolved = conversationsRef.current.some(
+        (c) =>
+          c.id === message.conversation_id &&
+          (c.user1_id === currentUser.id || c.user2_id === currentUser.id)
+      );
+      if (!isUserInvolved) return;
+
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === message.conversation_id
+            ? {
+                ...c,
+                messages: [...c.messages, message],
+                updated_at: message.created_at,
+              }
+            : c
+        )
+      );
+
+      if (selectedConversationRef.current?.id === message.conversation_id) {
+        setSelectedConversation((prev) =>
+          prev
+            ? { ...prev, messages: [...prev.messages, message], updated_at: message.created_at }
+            : prev
+        );
+      }
+    };
+
+    const channel = supabase.channel('dms_channel');
+
+    // Listen for conversation changes where the current user is either participant
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'dms', filter: `user1_id=eq.${currentUser.id}` },
+      handleConversationPayload
+    );
+
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'dms', filter: `user2_id=eq.${currentUser.id}` },
+      handleConversationPayload
+    );
+
+    // Listen for new messages in conversations involving the current user
+    conversationsRef.current.forEach((conv) => {
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'dm_messages',
+          filter: `conversation_id=eq.${conv.id}`,
+        },
+        handleMessagePayload
+      );
+    });
+
+    channel.subscribe();
     channelRef.current = channel;
   }, [cleanupConnections, currentUser.id]);
 
