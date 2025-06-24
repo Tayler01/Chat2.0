@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { MessageSquare, Send, X } from 'lucide-react';
+import { MessageSquare, Send, X, ArrowLeft } from 'lucide-react';
 import { ContactSidebar } from './dms/ContactSidebar';
 import { DMMessageItem } from './dms/DMMessageItem';
 import { useDirectMessages } from '../hooks/useDirectMessages';
