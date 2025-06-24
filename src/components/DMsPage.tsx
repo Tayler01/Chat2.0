@@ -291,7 +291,6 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       cleanupConnections();
     };
   }, [
-    selectedConversation?.id,
     fetchCurrentUserData,
     fetchUsers,
     fetchConversations,
