@@ -51,12 +51,19 @@ export function useAuth() {
   }, [hasCheckedSession]);
 
   const refreshSession = async () => {
+    console.log('🔄 [useAuth] Refreshing session');
     const {
       data: { session },
     } = await supabase.auth.getSession();
+    console.log('📋 [useAuth] Session refresh result:', {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      email: session?.user?.email
+    });
     if (session?.user) {
       await fetchUserProfile(session.user);
     } else {
+      console.log('❌ [useAuth] No session found during refresh');
       setUser(null);
       setLoading(false);
     }

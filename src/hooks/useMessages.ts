@@ -224,8 +224,44 @@ export function useMessages(userId: string | null) {
       timestamp: new Date().toISOString()
     });
 
+    // Check auth state before attempting to send
+    console.log('🔐 [sendMessage] Checking auth state');
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('📋 [sendMessage] Auth session check:', {
+      hasSession: !!session,
+      sessionError: sessionError?.message,
+      userId: session?.user?.id,
+      accessToken: session?.access_token ? 'present' : 'missing'
+    });
+
+    // Test database connection
+    console.log('🔌 [sendMessage] Testing database connection');
+    try {
+      const { data: testData, error: testError } = await supabase
+        .from('messages')
+        .select('id')
+        .limit(1);
+      console.log('✅ [sendMessage] Database connection test:', {
+        success: !testError,
+        error: testError?.message,
+        dataReceived: !!testData
+      });
+    } catch (testErr) {
+      console.error('❌ [sendMessage] Database connection test failed:', testErr);
+    }
     const attempt = async () => {
       console.log('📤 [sendMessage] Attempting to insert message into database');
+      
+      const insertData = {
+        content,
+        user_name: userName,
+        user_id: userId,
+        avatar_color: avatarColor,
+        avatar_url: avatarUrl,
+      };
+      console.log('📦 [sendMessage] Insert data prepared:', insertData);
+      
+      const startTime = Date.now();
       const { error } = await supabase.from('messages').insert({
         content,
         user_name: userName,
@@ -233,6 +269,9 @@ export function useMessages(userId: string | null) {
         avatar_color: avatarColor,
         avatar_url: avatarUrl,
       });
+      const endTime = Date.now();
+      console.log('⏱️ [sendMessage] Database insert took:', endTime - startTime, 'ms');
+      
       if (error) {
         console.error('❌ [sendMessage] Database insert failed:', error);
         throw error;
@@ -240,7 +279,10 @@ export function useMessages(userId: string | null) {
       console.log('✅ [sendMessage] Message inserted successfully');
       
       console.log('🔄 [sendMessage] Updating user last active');
+      const presenceStartTime = Date.now();
       await supabase.rpc('update_user_last_active');
+      const presenceEndTime = Date.now();
+      console.log('⏱️ [sendMessage] Presence update took:', presenceEndTime - presenceStartTime, 'ms');
       console.log('✅ [sendMessage] User last active updated');
     };
 
