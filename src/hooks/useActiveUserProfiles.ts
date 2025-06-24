@@ -19,6 +19,10 @@ const profileCache: Record<string, ActiveUserProfile> = {};
 export function useActiveUserProfiles(activeUserIds: string[]) {
   const [profiles, setProfiles] = useState<ActiveUserProfile[]>([]);
   const prevIdsRef = useRef<string[]>([]);
+  // Track all user ids we've fetched profiles for. This lets us avoid
+  // re-fetching data for ids we've already seen while still fetching when a
+  // completely new id appears.
+  const fetchedIdsRef = useRef<Set<string>>(new Set());
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   // Stable key representing the set of active user ids. Sorting ensures we do
   // not react to changes in array order.
@@ -28,6 +32,8 @@ export function useActiveUserProfiles(activeUserIds: string[]) {
   );
 
   useEffect(() => {
+    // Snapshot current active ids so the realtime subscription can check
+    // whether an incoming update is relevant.
     prevIdsRef.current = activeUserIds;
 
     // Clean up previous subscription before creating a new one.
@@ -39,7 +45,13 @@ export function useActiveUserProfiles(activeUserIds: string[]) {
       return;
     }
 
-    const missingIds = activeUserIds.filter((id) => !profileCache[id]);
+    // Determine which ids are new compared to what we've already fetched.
+    const newIds = activeUserIds.filter((id) => !fetchedIdsRef.current.has(id));
+    const missingIds = newIds.filter((id) => !profileCache[id]);
+
+    // Remove profiles that are no longer active immediately while we fetch
+    // any newly active profiles.
+    setProfiles((prev) => prev.filter((p) => activeUserIds.includes(p.id)));
 
     const fetchProfiles = async (ids: string[]) => {
       if (ids.length === 0) {
@@ -68,6 +80,8 @@ export function useActiveUserProfiles(activeUserIds: string[]) {
             .filter((p): p is ActiveUserProfile => Boolean(p))
         );
       }
+      // Mark these ids as fetched so we don't refetch them later.
+      ids.forEach((id) => fetchedIdsRef.current.add(id));
     };
     fetchProfiles(missingIds);
 
