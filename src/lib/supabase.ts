@@ -121,9 +121,10 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    debug: true
+    debug: false
   },
   realtime: {
+    timeout: 30000,
     params: {
       eventsPerSecond: 10
     }

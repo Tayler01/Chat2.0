@@ -183,22 +183,10 @@ export function useMessages(userId: string | null) {
     const attempt = async () => {
       console.log('Starting attempt...');
       
-      // Check current session before attempting insert
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('Current session:', { 
-        hasSession: !!session, 
-        userId: session?.user?.id, 
-        sessionError 
-      });
-      
-      if (!session) {
-        throw new Error('No active session');
-      }
-      
       console.log('Inserting message into database...');
       
-      // Add timeout to prevent hanging
-      const insertPromise = supabase.from('messages').insert({
+      // Simplified insert without timeout wrapper
+      const { error } = await supabase.from('messages').insert({
         content,
         user_name: userName,
         user_id: userId,
@@ -206,24 +194,11 @@ export function useMessages(userId: string | null) {
         avatar_url: avatarUrl,
       });
       
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database insert timeout')), 10000)
-      );
-      
-      const { error } = await Promise.race([insertPromise, timeoutPromise]) as any;
       console.log('Insert result:', { error });
       if (error) throw error;
       
       console.log('Updating user last active...');
-      
-      // Also add timeout for presence update
-      const presencePromise = supabase.rpc('update_user_last_active');
-      const presenceTimeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Presence update timeout')), 5000)
-      );
-      
-      const { error: presenceError } = await Promise.race([presencePromise, presenceTimeoutPromise]) as any;
-      if (presenceError) console.warn('Presence update failed:', presenceError);
+      await updatePresence();
       console.log('Presence update complete');
     };
 
@@ -236,10 +211,10 @@ export function useMessages(userId: string | null) {
       console.log('First attempt failed:', err1);
       try {
         console.log('Trying session refresh...');
-        // Force session refresh
-        const { error: refreshError } = await supabase.auth.refreshSession();
-        console.log('Session refresh result:', { refreshError });
-        await new Promise((r) => setTimeout(r, 100));
+        // Reconnect realtime and refresh session
+        supabase.realtime.connect();
+        await supabase.auth.refreshSession();
+        await new Promise((r) => setTimeout(r, 500));
         console.log('Attempting second try...');
         await attempt();
         console.log('Second attempt successful');
@@ -247,7 +222,9 @@ export function useMessages(userId: string | null) {
       } catch (err2) {
         console.log('Second attempt failed:', err2);
         console.log('All attempts failed');
-        setError('Unable to send message. Please check your connection and try again.');
+        setError(
+          err2 instanceof Error ? err2.message : 'Failed to send message'
+        );
         return false;
       }
     }
