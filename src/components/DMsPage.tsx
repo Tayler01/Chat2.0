@@ -275,7 +275,9 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
       const { data, error } = await supabase
         .from('dms')
-        .select('*')
+        .select(
+          'id,user1_id,user2_id,user1_username,user2_username,updated_at'
+        )
         .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
         .order('updated_at', { ascending: false });
 
@@ -289,13 +291,45 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
     }
   }, [currentUser.id]);
 
+  const fetchConversationMessages = useCallback(
+    async (conversationId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('dms')
+          .select('messages')
+          .eq('id', conversationId)
+          .single();
+
+        if (error) throw error;
+
+        const msgs = Array.isArray(data?.messages)
+          ? (data.messages as DMMessage[])
+          : [];
+
+        setConversations((prev) =>
+          prev.map((c) => (c.id === conversationId ? { ...c, messages: msgs } : c))
+        );
+
+        setSelectedConversation((prev) =>
+          prev && prev.id === conversationId ? { ...prev, messages: msgs } : prev
+        );
+
+        setMessageLimit(Math.min(DM_PAGE_SIZE, msgs.length));
+      } catch (err) {
+        console.error('Error fetching conversation messages:', err);
+      }
+    },
+    [currentUser.id]
+  );
+
   useEffect(() => {
     if (initialConversationId && conversations.length > 0 && !selectedConversation) {
-      const conv = conversations.find(c => c.id === initialConversationId);
+      const conv = conversations.find((c) => c.id === initialConversationId);
       if (conv) {
         const normalized = normalizeConversation(conv);
         setSelectedConversation(normalized);
-        setMessageLimit(Math.min(DM_PAGE_SIZE, normalized.messages.length));
+        fetchConversationMessages(normalized.id);
+        setMessageLimit(DM_PAGE_SIZE);
         hasAutoScrolledRef.current = false;
         if (onConversationOpen) {
           onConversationOpen(normalized.id, normalized.updated_at);
@@ -406,10 +440,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
       if (error) throw error;
 
-      // Fetch the conversation
+      // Fetch the conversation metadata
       const { data: conversation, error: fetchError } = await supabase
         .from('dms')
-        .select('*')
+        .select(
+          'id,user1_id,user2_id,user1_username,user2_username,updated_at'
+        )
         .eq('id', conversationId)
         .single();
 
@@ -417,7 +453,8 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
       const normalized = normalizeConversation(conversation);
       setSelectedConversation(normalized);
-      setMessageLimit(Math.min(DM_PAGE_SIZE, normalized.messages.length));
+      fetchConversationMessages(normalized.id);
+      setMessageLimit(DM_PAGE_SIZE);
       hasAutoScrolledRef.current = false;
       if (onConversationOpen) {
         onConversationOpen(normalized.id, normalized.updated_at);
@@ -616,7 +653,10 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                             key={conversation.id}
                             onClick={() => {
                               setSelectedConversation(conversation);
-                              setMessageLimit(Math.min(DM_PAGE_SIZE, conversation.messages.length));
+                              if (conversation.messages.length === 0) {
+                                fetchConversationMessages(conversation.id);
+                              }
+                              setMessageLimit(DM_PAGE_SIZE);
                               hasAutoScrolledRef.current = false;
                               if (onConversationOpen) {
                                 onConversationOpen(
