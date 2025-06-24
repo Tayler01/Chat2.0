@@ -95,7 +95,6 @@ export interface Database {
           user2_id: string;
           user1_username: string;
           user2_username: string;
-          messages: Record<string, unknown>[] | null;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -105,7 +104,6 @@ export interface Database {
           user2_id: string;
           user1_username: string;
           user2_username: string;
-          messages?: Record<string, unknown>[] | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
@@ -115,9 +113,34 @@ export interface Database {
           user2_id?: string;
           user1_username?: string;
           user2_username?: string;
-          messages?: Record<string, unknown>[] | null;
           created_at?: string | null;
           updated_at?: string | null;
+        };
+      };
+      dm_messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          content: string;
+          reactions: Record<string, string[]> | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_id: string;
+          content: string;
+          reactions?: Record<string, string[]> | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          sender_id?: string;
+          content?: string;
+          reactions?: Record<string, string[]> | null;
+          created_at?: string | null;
         };
       };
     };

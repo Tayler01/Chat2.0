@@ -77,9 +77,17 @@ export function useDMNotifications(userId: string | null) {
       }
     };
 
-    const handlePayload = (payload: { new: DMConversation }) => {
+    const handlePayload = async (payload: { new: DMConversation }) => {
       const conversation = payload.new as DMConversation;
-      const lastMessage = conversation.messages[conversation.messages.length - 1];
+
+      const { data: messages } = await supabase
+        .from('dm_messages')
+        .select('sender_id, content, created_at')
+        .eq('conversation_id', conversation.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const lastMessage = messages?.[0];
       if (!lastMessage || lastMessage.sender_id === userId) return;
 
       const lastRead = getLastRead();
