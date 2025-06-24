@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
 
@@ -15,7 +15,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
 
-  const fetchUserProfile = async (authUser: User) => {
+  const fetchUserProfile = useCallback(async (authUser: User) => {
     try {
       const { data: profile } = await supabase
         .from('users')
@@ -42,9 +42,9 @@ export function useAuth() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const refreshSession = async () => {
+  const refreshSession = useCallback(async () => {
     try {
       await supabase.auth.refreshSession();
     } catch (error) {
@@ -61,7 +61,7 @@ export function useAuth() {
       setUser(null);
       setLoading(false);
     }
-  };
+  }, [fetchUserProfile]);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -90,7 +90,7 @@ export function useAuth() {
     });
 
     return () => subscription.unsubscribe();
-  }, [hasCheckedSession]);
+  }, [hasCheckedSession, fetchUserProfile]);
 
   useEffect(() => {
 
@@ -107,7 +107,7 @@ export function useAuth() {
       window.removeEventListener('focus', refreshSession);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, []);
+  }, [refreshSession]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
