@@ -193,6 +193,7 @@ export function useMessages(userId: string | null) {
   return {
     messages,
     loading,
+    loadingOlder,
     error,
     refresh,
     sendMessage,

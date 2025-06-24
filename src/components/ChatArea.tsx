@@ -14,6 +14,7 @@ interface ChatAreaProps {
   onRetry: () => void;
   fetchOlderMessages: () => void;
   hasMore: boolean;
+  loadingOlder?: boolean;
   onUserClick?: (userId: string) => void;
   activeUserIds: string[];
 }
@@ -26,6 +27,7 @@ export function ChatArea({
   onRetry,
   fetchOlderMessages,
   hasMore,
+  loadingOlder = false,
   onUserClick,
   activeUserIds,
 
@@ -36,6 +38,7 @@ export function ChatArea({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
+  const previousScrollHeightRef = useRef<number | null>(null);
 
   const latestMessageByUser = React.useMemo(() => {
     const map = new Map<string, string>();
@@ -108,21 +111,24 @@ export function ChatArea({
     if (!container || !hasMore || isFetchingRef.current) return;
 
     if (container.scrollTop <= 20) {
-      const previousHeight = container.scrollHeight;
+      previousScrollHeightRef.current = container.scrollHeight;
       isFetchingRef.current = true;
 
       fetchOlderMessages();
-
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          const newHeight = container.scrollHeight;
-          container.scrollTop = newHeight - previousHeight;
-
-          isFetchingRef.current = false;
-        });
-      }, 100);
     }
   }, [fetchOlderMessages, hasMore]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (!loadingOlder && isFetchingRef.current && previousScrollHeightRef.current !== null) {
+      const newHeight = container.scrollHeight;
+      container.scrollTop = newHeight - previousScrollHeightRef.current;
+      isFetchingRef.current = false;
+      previousScrollHeightRef.current = null;
+    }
+  }, [loadingOlder, virtualItems.length]);
 
   useEffect(() => {
     const container = containerRef.current;
