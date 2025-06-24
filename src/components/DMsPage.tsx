@@ -432,18 +432,35 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       return true;
     } catch (err1) {
       try {
+        // Force reconnect realtime
         supabase.realtime.connect();
         await new Promise((r) => setTimeout(r, 500));
         await attempt();
         return true;
       } catch (err2) {
         try {
+          // Refresh auth session and retry
           await supabase.auth.refreshSession();
+          await new Promise((r) => setTimeout(r, 300));
           await attempt();
           return true;
         } catch (err3) {
-          console.error('Error sending message:', err3);
-          return false;
+          try {
+            // Final attempt: get fresh session and reconnect everything
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              supabase.realtime.connect();
+              await new Promise((r) => setTimeout(r, 800));
+              await attempt();
+              return true;
+            } else {
+              console.error('Session expired. Please refresh the page.');
+              return false;
+            }
+          } catch (err4) {
+            console.error('Error sending message:', err4);
+            return false;
+          }
         }
       }
     }

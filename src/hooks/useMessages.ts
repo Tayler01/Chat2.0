@@ -195,20 +195,37 @@ export function useMessages(userId: string | null) {
       return true;
     } catch (err1) {
       try {
+        // Force reconnect realtime
         supabase.realtime.connect();
         await new Promise((r) => setTimeout(r, 500));
         await attempt();
         return true;
       } catch (err2) {
         try {
+          // Refresh auth session and retry
           await supabase.auth.refreshSession();
+          await new Promise((r) => setTimeout(r, 300));
           await attempt();
           return true;
         } catch (err3) {
-          setError(
-            err3 instanceof Error ? err3.message : 'Failed to send message'
-          );
-          return false;
+          try {
+            // Final attempt: get fresh session and reconnect everything
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              supabase.realtime.connect();
+              await new Promise((r) => setTimeout(r, 800));
+              await attempt();
+              return true;
+            } else {
+              setError('Session expired. Please refresh the page.');
+              return false;
+            }
+          } catch (err4) {
+            setError(
+              err4 instanceof Error ? err4.message : 'Failed to send message'
+            );
+            return false;
+          }
         }
       }
     }
