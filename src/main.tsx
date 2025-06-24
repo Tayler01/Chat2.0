@@ -7,11 +7,13 @@ import { triggerAuthRefresh } from './hooks/useAuth';
 import { triggerMessagesRefresh } from './hooks/useMessages';
 import { triggerDMsRefresh } from './hooks/useDirectMessages';
 import { updatePresence } from './utils/updatePresence';
+import { supabase } from './lib/supabase';
 
 // Component responsible for setting up focus/visibility event listeners.
 export function Root() {
   useEffect(() => {
     const handleRefresh = () => {
+      supabase.realtime.connect();
       triggerAuthRefresh();
       triggerMessagesRefresh();
       triggerDMsRefresh();
