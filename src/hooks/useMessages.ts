@@ -226,12 +226,24 @@ export function useMessages(userId: string | null) {
 
     // Quick auth check without aggressive timeout
     console.log('🔐 [sendMessage] Checking auth session');
+    let session = null;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data } = await supabase.auth.getSession();
+      session = data.session;
       console.log('📋 [sendMessage] Auth check result:', {
         hasSession: !!session,
         userId: session?.user?.id
       });
+      if (!session) {
+        console.log('🔄 [sendMessage] No session found, refreshing');
+        await supabase.auth.refreshSession();
+        const { data: refreshed } = await supabase.auth.getSession();
+        session = refreshed.session;
+        console.log('📋 [sendMessage] Session after refresh:', {
+          hasSession: !!session,
+          userId: session?.user?.id
+        });
+      }
     } catch (authErr) {
       console.warn('⚠️ [sendMessage] Auth check failed, proceeding anyway:', authErr);
     }
