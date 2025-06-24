@@ -14,6 +14,42 @@ export function useMessages(userId: string | null) {
   const oldestTimestampRef = useRef<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
+  const updatePresence = useCallback(async () => {
+    try {
+      await supabase.rpc('update_user_last_active');
+    } catch (err) {
+      console.error('Failed to update last_active', err);
+    }
+  }, []);
+
+  const fetchLatestMessages = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from('messages')
+        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at, reactions')
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
+
+      if (error) throw error;
+
+      const sorted = [...(data || [])].reverse();
+      setMessages(sorted);
+
+      if (sorted.length > 0) {
+        oldestTimestampRef.current = sorted[0].created_at;
+      }
+
+      setHasMore((data || []).length === PAGE_SIZE);
+      await updatePresence();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load messages');
+    } finally {
+      setLoading(false);
+    }
+  }, [updatePresence]);
+
   const subscribeToMessages = useCallback(() => {
     if (!userId) return;
 
@@ -54,6 +90,11 @@ export function useMessages(userId: string | null) {
     channelRef.current = channel;
   }, [userId]);
 
+  const refresh = useCallback(() => {
+    subscribeToMessages();
+    fetchLatestMessages();
+  }, [subscribeToMessages, fetchLatestMessages]);
+
   useEffect(() => {
     if (!userId) return;
 
@@ -86,47 +127,6 @@ export function useMessages(userId: string | null) {
       window.removeEventListener('focus', handleFocus);
     };
   }, [userId, refresh]);
-
-  const updatePresence = async () => {
-    try {
-      await supabase.rpc('update_user_last_active');
-    } catch (err) {
-      console.error('Failed to update last_active', err);
-    }
-  };
-
-  const fetchLatestMessages = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const { data, error } = await supabase
-        .from('messages')
-        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at, reactions')
-        .order('created_at', { ascending: false })
-        .limit(PAGE_SIZE);
-
-      if (error) throw error;
-
-      const sorted = [...(data || [])].reverse();
-      setMessages(sorted);
-
-      if (sorted.length > 0) {
-        oldestTimestampRef.current = sorted[0].created_at;
-      }
-
-      setHasMore((data || []).length === PAGE_SIZE);
-      await updatePresence();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load messages');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const refresh = useCallback(() => {
-    subscribeToMessages();
-    fetchLatestMessages();
-  }, [subscribeToMessages, fetchLatestMessages]);
 
   const fetchOlderMessages = async () => {
     if (loadingOlder || !oldestTimestampRef.current || !hasMore) return;
@@ -190,7 +190,6 @@ export function useMessages(userId: string | null) {
     }
   };
 
-
   return {
     messages,
     loading,
@@ -201,5 +200,3 @@ export function useMessages(userId: string | null) {
     hasMore,
   };
 }
-
-
