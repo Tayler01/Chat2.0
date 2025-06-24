@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 
 interface MessageInputProps {
-  onSendMessage: (content: string) => void;
+  // Returns true if the message was successfully sent
+  onSendMessage: (content: string) => Promise<boolean>;
   disabled?: boolean;
 }
 
@@ -10,13 +11,26 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Persist the message draft across reloads
+  useEffect(() => {
+    const saved = localStorage.getItem('groupChatDraft');
+    if (saved) setMessage(saved);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('groupChatDraft', message);
+  }, [message]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
-      onSendMessage(message.trim());
-      setMessage('');
-      // Keep the textarea focused so the keyboard stays open
-      textareaRef.current?.focus();
+      const success = await onSendMessage(message.trim());
+      if (success) {
+        setMessage('');
+        localStorage.removeItem('groupChatDraft');
+        // Keep the textarea focused so the keyboard stays open
+        textareaRef.current?.focus();
+      }
     }
   };
 

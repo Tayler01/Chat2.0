@@ -170,7 +170,7 @@ export function useMessages(userId: string | null) {
     userId: string,
     avatarColor: string,
     avatarUrl?: string | null
-  ) => {
+  ): Promise<boolean> => {
     try {
       const { error } = await supabase.from('messages').insert({
         content,
@@ -183,8 +183,10 @@ export function useMessages(userId: string | null) {
       if (error) throw error;
 
       await supabase.rpc('update_user_last_active');
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
+      return false;
     }
   };
 
