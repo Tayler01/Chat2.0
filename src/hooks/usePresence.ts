@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-const INTERVAL = Number(import.meta.env.VITE_PRESENCE_INTERVAL_MS) || 30000;
+const INTERVAL = Number(import.meta.env.VITE_PRESENCE_INTERVAL_MS) || 120000;
 
 export function usePresence() {
   const [activeUserIds, setActiveUserIds] = useState<string[]>([]);
@@ -24,13 +24,16 @@ export function usePresence() {
       }
     };
 
-    window.addEventListener('focus', updatePresence);
+    const activityEvents = ['focus', 'mousemove', 'keydown'] as const;
+    activityEvents.forEach((ev) => window.addEventListener(ev, updatePresence));
     document.addEventListener('visibilitychange', handleVisibility);
 
     intervalRef.current = window.setInterval(updatePresence, INTERVAL);
 
     return () => {
-      window.removeEventListener('focus', updatePresence);
+      activityEvents.forEach((ev) =>
+        window.removeEventListener(ev, updatePresence)
+      );
       document.removeEventListener('visibilitychange', handleVisibility);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
