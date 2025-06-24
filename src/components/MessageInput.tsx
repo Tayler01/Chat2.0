@@ -74,6 +74,7 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
             type="submit"
             disabled={!message.trim() || disabled}
             className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 sm:p-2.5 rounded-full hover:scale-105 active:scale-95 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+            onMouseDown={(e) => e.preventDefault()}
           >
             <Send className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
