@@ -67,7 +67,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { showToast } = useToast();
+  const { show } = useToast();
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -90,11 +90,11 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       setConversations(normalizedConversations);
     } catch (error) {
       console.error('Error loading conversations:', error);
-      showToast('Failed to load conversations', 'error');
+      show('Failed to load conversations');
     } finally {
       setLoading(false);
     }
-  }, [currentUser.id, showToast]);
+  }, [currentUser.id, show]);
 
   const searchUsers = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -115,11 +115,11 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       setSearchResults(data || []);
     } catch (error) {
       console.error('Error searching users:', error);
-      showToast('Failed to search users', 'error');
+      show('Failed to search users');
     } finally {
       setIsSearching(false);
     }
-  }, [currentUser.id, showToast]);
+  }, [currentUser.id, show]);
 
   const startConversation = useCallback(async (otherUser: User) => {
     try {
@@ -170,9 +170,9 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       setSearchResults([]);
     } catch (error) {
       console.error('Error starting conversation:', error);
-      showToast('Failed to start conversation', 'error');
+      show('Failed to start conversation');
     }
-  }, [currentUser, showToast]);
+  }, [currentUser, show]);
 
   const sendMessage = useCallback(async () => {
     if (!newMessage.trim() || !selectedConversation || sending) return;
@@ -206,11 +206,11 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
       setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error('Error sending message:', error);
-      showToast('Failed to send message', 'error');
+      show('Failed to send message');
     } finally {
       setSending(false);
     }
-  }, [newMessage, selectedConversation, currentUser.id, sending, showToast, scrollToBottom]);
+  }, [newMessage, selectedConversation, currentUser.id, sending, show, scrollToBottom]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -331,10 +331,10 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                     >
                       <div className="relative">
                         <Avatar
-                          username={user.username}
-                          avatarUrl={user.avatar_url}
+                          url={user.avatar_url}
+                          alt={user.username}
                           color={user.avatar_color}
-                          size="sm"
+                          className="w-8 h-8 rounded-full"
                         />
                         {isUserActive(user.id) && (
                           <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full"></div>
@@ -390,9 +390,10 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                   >
                     <div className="relative">
                       <Avatar
-                        username={otherUser.username}
+                        url={undefined}
+                        alt={otherUser.username}
                         color="#3B82F6"
-                        size="sm"
+                        className="w-8 h-8 rounded-full"
                       />
                       {isUserActive(otherUser.id) && (
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full"></div>
@@ -441,9 +442,10 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
               <div className="flex items-center">
                 <div className="relative">
                   <Avatar
-                    username={getOtherUser(currentConversation).username}
+                    url={undefined}
+                    alt={getOtherUser(currentConversation).username}
                     color="#3B82F6"
-                    size="sm"
+                    className="w-8 h-8 rounded-full"
                   />
                   {isUserActive(getOtherUser(currentConversation).id) && (
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full"></div>
