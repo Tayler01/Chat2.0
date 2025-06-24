@@ -498,6 +498,7 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
 
   const handleBackToContacts = useCallback(() => {
     setSelectedConversation(null);
+    setShowReactionPicker(null);
     fetchUsers();
     fetchConversations();
   }, [fetchUsers, fetchConversations]);
