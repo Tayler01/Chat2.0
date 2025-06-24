@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { AuthForm } from './components/AuthForm';
 import { ChatHeader } from './components/ChatHeader';
 import { ChatArea } from './components/ChatArea';
 import { MessageInput } from './components/MessageInput';
 import { UserProfile } from './components/UserProfile';
 import { ProfilePreviewModal } from './components/ProfilePreviewModal';
-import { DMsPage } from './components/DMsPage';
 import { DMNotification } from './components/DMNotification';
 import { useMessages } from './hooks/useMessages';
 import { useAuth } from './hooks/useAuth';
@@ -13,6 +12,10 @@ import { useDMNotifications } from './hooks/useDMNotifications';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { usePresence } from './hooks/usePresence';
 import { useActiveUserProfiles } from './hooks/useActiveUserProfiles';
+
+const DMsPage = lazy(() =>
+  import('./components/DMsPage').then((m) => ({ default: m.DMsPage }))
+);
 
 type PageType = 'group-chat' | 'dms' | 'profile';
 
@@ -111,18 +114,26 @@ function App() {
             // already on DMs page
           }}
         />
-        <DMsPage
-          currentUser={user}
-          onUserClick={handleUserClick}
-          unreadConversations={unreadConversations}
-          onConversationOpen={(id, ts) => {
-            markAsRead(id, ts);
-            setOpenConversationId(null);
-          }}
-          initialConversationId={openConversationId}
-          onBackToGroupChat={() => setCurrentPage('group-chat')}
-          activeUserIds={activeUserIds}
-        />
+        <Suspense
+          fallback={
+            <div className="flex-1 flex items-center justify-center">
+              <LoadingSpinner />
+            </div>
+          }
+        >
+          <DMsPage
+            currentUser={user}
+            onUserClick={handleUserClick}
+            unreadConversations={unreadConversations}
+            onConversationOpen={(id, ts) => {
+              markAsRead(id, ts);
+              setOpenConversationId(null);
+            }}
+            initialConversationId={openConversationId}
+            onBackToGroupChat={() => setCurrentPage('group-chat')}
+            activeUserIds={activeUserIds}
+          />
+        </Suspense>
         {previewUserId && (
           <ProfilePreviewModal
             userId={previewUserId}
