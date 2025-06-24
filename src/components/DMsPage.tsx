@@ -98,10 +98,7 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
     try {
       const { data, error } = await supabase
         .from('dms')
-        .select(`
-          *,
-          messages:dm_messages(*)
-        `)
+        .select('*')
         .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
         .order('updated_at', { ascending: false });
 
@@ -250,6 +247,35 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!selectedConversation) return;
+      const conv = conversations.find(c => c.id === selectedConversation);
+      if (!conv || conv.messages.length > 0) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('dm_messages')
+          .select('*')
+          .eq('conversation_id', selectedConversation)
+          .order('created_at');
+
+        if (error) throw error;
+
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === selectedConversation ? { ...c, messages: data || [] } : c
+          )
+        );
+      } catch (err) {
+        console.error('Error loading messages:', err);
+        show('Failed to load messages');
+      }
+    };
+
+    fetchMessages();
+  }, [selectedConversation, conversations, show]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
