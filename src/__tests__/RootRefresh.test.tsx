@@ -45,6 +45,22 @@ test('focus triggers refresh without reload', () => {
   expect(presSpy).toHaveBeenCalled();
 });
 
+test('pageshow triggers refresh', () => {
+  const authSpy = jest.spyOn(auth, 'triggerAuthRefresh').mockImplementation(() => Promise.resolve());
+  const msgSpy = jest.spyOn(messages, 'triggerMessagesRefresh').mockImplementation(() => {});
+  const dmSpy = jest.spyOn(dms, 'triggerDMsRefresh').mockImplementation(() => {});
+  const presSpy = jest.spyOn(presence, 'updatePresence').mockImplementation(() => Promise.resolve());
+
+  render(<Root />);
+
+  window.dispatchEvent(new Event('pageshow'));
+
+  expect(authSpy).toHaveBeenCalled();
+  expect(msgSpy).toHaveBeenCalled();
+  expect(dmSpy).toHaveBeenCalled();
+  expect(presSpy).toHaveBeenCalled();
+});
+
 test('visibility change triggers refresh', () => {
   const authSpy = jest.spyOn(auth, 'triggerAuthRefresh').mockImplementation(() => Promise.resolve());
   const msgSpy = jest.spyOn(messages, 'triggerMessagesRefresh').mockImplementation(() => {});
