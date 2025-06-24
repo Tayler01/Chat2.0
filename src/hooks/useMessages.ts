@@ -183,6 +183,18 @@ export function useMessages(userId: string | null) {
     const attempt = async () => {
       console.log('Starting attempt...');
       
+      // Check current session before attempting insert
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Current session:', { 
+        hasSession: !!session, 
+        userId: session?.user?.id, 
+        sessionError 
+      });
+      
+      if (!session) {
+        throw new Error('No active session');
+      }
+      
       console.log('Inserting message into database...');
       
       // Add timeout to prevent hanging
@@ -224,8 +236,9 @@ export function useMessages(userId: string | null) {
       console.log('First attempt failed:', err1);
       try {
         console.log('Trying session refresh...');
-        // Simple session refresh
-        await supabase.auth.refreshSession();
+        // Force session refresh
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        console.log('Session refresh result:', { refreshError });
         await new Promise((r) => setTimeout(r, 100));
         console.log('Attempting second try...');
         await attempt();
