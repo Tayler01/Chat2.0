@@ -224,31 +224,23 @@ export function useMessages(userId: string | null) {
       timestamp: new Date().toISOString()
     });
 
-    // Check auth state before attempting to send
-    console.log('🔐 [sendMessage] Checking auth state');
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('📋 [sendMessage] Auth session check:', {
-      hasSession: !!session,
-      sessionError: sessionError?.message,
-      userId: session?.user?.id,
-      accessToken: session?.access_token ? 'present' : 'missing'
-    });
-
-    // Test database connection
-    console.log('🔌 [sendMessage] Testing database connection');
+    // Quick auth check with timeout
+    console.log('🔐 [sendMessage] Quick auth check');
     try {
-      const { data: testData, error: testError } = await supabase
-        .from('messages')
-        .select('id')
-        .limit(1);
-      console.log('✅ [sendMessage] Database connection test:', {
-        success: !testError,
-        error: testError?.message,
-        dataReceived: !!testData
+      const authPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Auth check timeout')), 2000)
+      );
+      
+      const { data: { session } } = await Promise.race([authPromise, timeoutPromise]) as any;
+      console.log('📋 [sendMessage] Auth check result:', {
+        hasSession: !!session,
+        userId: session?.user?.id
       });
-    } catch (testErr) {
-      console.error('❌ [sendMessage] Database connection test failed:', testErr);
+    } catch (authErr) {
+      console.warn('⚠️ [sendMessage] Auth check failed/timed out, proceeding anyway:', authErr);
     }
+
     const attempt = async () => {
       console.log('📤 [sendMessage] Attempting to insert message into database');
       
@@ -305,7 +297,11 @@ export function useMessages(userId: string | null) {
         console.warn('⚠️ [sendMessage] Second attempt failed, trying auth refresh:', err2);
         try {
           console.log('🔐 [sendMessage] Refreshing auth session');
-          await supabase.auth.refreshSession();
+          const refreshPromise = supabase.auth.refreshSession();
+          const refreshTimeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Refresh timeout')), 3000)
+          );
+          await Promise.race([refreshPromise, refreshTimeout]);
           console.log('🎯 [sendMessage] Third attempt after auth refresh');
           await attempt();
           console.log('🎉 [sendMessage] Third attempt successful');
