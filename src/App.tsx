@@ -3,7 +3,9 @@ import { AuthForm } from './components/AuthForm';
 import { ChatHeader } from './components/ChatHeader';
 import { ChatArea } from './components/ChatArea';
 import { MessageInput } from './components/MessageInput';
-import { UserProfile } from './components/UserProfile';
+const UserProfile = lazy(() =>
+  import('./components/UserProfile').then((m) => ({ default: m.UserProfile }))
+);
 import { ProfilePreviewModal } from './components/ProfilePreviewModal';
 import { DMNotification } from './components/DMNotification';
 import { useMessages } from './hooks/useMessages';
@@ -63,13 +65,21 @@ function App() {
   // Show profile page if requested
   if (currentPage === 'profile') {
     return (
-      <UserProfile
-        user={user}
-        onClose={() => setCurrentPage('group-chat')}
-        onUserUpdate={updateUser}
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-      />
+      <Suspense
+        fallback={
+          <div className="h-screen bg-gray-900">
+            <LoadingSpinner />
+          </div>
+        }
+      >
+        <UserProfile
+          user={user}
+          onClose={() => setCurrentPage('group-chat')}
+          onUserUpdate={updateUser}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+        />
+      </Suspense>
     );
   }
 
