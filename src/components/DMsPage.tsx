@@ -74,6 +74,10 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
   const listRef = useRef<List>(null);
   const { show } = useToast();
 
+  const currentConversation = useMemo(() => {
+    return conversations.find(conv => conv.id === selectedConversation);
+  }, [conversations, selectedConversation]);
+
   useEffect(() => {
     const updateHeight = () => {
       if (messagesWrapperRef.current) {
@@ -210,11 +214,6 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
       show('Failed to start conversation');
     }
   }, [currentUser, show]);
-
-  const currentConversation = useMemo(() => {
-    return conversations.find(conv => conv.id === selectedConversation);
-  }, [conversations, selectedConversation]);
-
 
   useEffect(() => {
     scrollToBottom();
