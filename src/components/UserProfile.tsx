@@ -252,13 +252,13 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
 
       {/* Main content with grid layout */}
       <div className="h-screen overflow-hidden">
-        <div className="flex justify-start px-4 sm:px-8 lg:px-16 py-2 sm:py-4 h-full">
+        <div className="flex justify-start px-4 sm:px-8 lg:px-16 py-4 sm:py-6 h-full">
           
           {/* Profile Card - Left side */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 flex flex-col relative overflow-hidden w-full max-w-md mx-auto sm:mx-0 max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-10rem)]">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 flex flex-col relative overflow-hidden w-full max-w-md mx-auto sm:mx-0">
             {/* Banner */}
             <div 
-              className="h-20 sm:h-24 bg-cover bg-center relative bg-gradient-to-r from-blue-600 to-purple-600"
+              className="h-24 sm:h-32 bg-cover bg-center relative bg-gradient-to-r from-blue-600 to-purple-600"
               style={profileData.banner_url ? { 
                 backgroundImage: `url(${profileData.banner_url})`,
                 backgroundSize: 'cover',
@@ -269,18 +269,18 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
             </div>
 
             {/* Avatar & Info */}
-            <div className="px-4 sm:px-6 pt-0 pb-3 sm:pb-4 relative space-y-2 sm:space-y-3 flex-1 overflow-y-auto">
+            <div className="px-4 sm:px-6 pt-0 pb-4 sm:pb-6 relative space-y-3 sm:space-y-4 flex-1">
               <div className="flex items-end space-x-4">
-                <div className="-mt-6 sm:-mt-8 w-14 h-14 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gray-600 ring-4 ring-gray-800 flex-shrink-0">
+                <div className="-mt-8 sm:-mt-12 w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-gray-600 ring-4 ring-gray-800 flex-shrink-0">
                   <Avatar
                     url={profileData.avatar_url}
                     alt="Avatar"
                     color={profileData.avatar_color}
-                    className="w-full h-full object-cover text-base sm:text-xl"
+                    className="w-full h-full object-cover text-lg sm:text-2xl"
                   />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-base sm:text-lg font-bold text-white">{profileData.username}</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-white">{profileData.username}</h2>
                   <p className="text-xs sm:text-sm text-gray-300 mt-1">
                     Joined {formatJoinDate(profileData.created_at)}
                   </p>
@@ -288,7 +288,7 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
               </div>
 
               {/* Bio Section */}
-              <div className="bg-gray-700 w-full rounded-md p-3 border border-gray-600">
+              <div className="bg-gray-700 w-full rounded-md p-4 border border-gray-600">
                 <h4 className="text-xs sm:text-sm font-semibold text-gray-200 mb-1">Bio</h4>
                 <p className="text-xs sm:text-sm text-gray-300 whitespace-pre-line">
                   {profileData.bio || 'No bio yet. Click Edit Profile to add one.'}
@@ -296,7 +296,7 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
               </div>
 
               {/* Email Info */}
-              <div className="flex items-center space-x-3 p-2.5 bg-gray-700 rounded-md">
+              <div className="flex items-center space-x-3 p-2 bg-gray-700 rounded-md">
                 <Mail size={16} className="text-blue-400 sm:w-[18px] sm:h-[18px]" />
                 <div className="flex-1 overflow-hidden">
                   <p className="text-xs sm:text-sm font-medium text-white">Email</p>
@@ -308,10 +308,10 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
             </div>
 
             {/* Edit Profile Button */}
-            <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3">
+            <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4">
               <button
                 onClick={() => setShowEditModal(true)}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow transition-colors"
+                className="px-3 py-2 sm:px-4 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow transition-colors"
               >
                 Edit Profile
               </button>
