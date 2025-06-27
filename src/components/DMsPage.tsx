@@ -74,11 +74,6 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
   const listRef = useRef<List>(null);
   const { show } = useToast();
 
-  // Initialize mobile state
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-  }, []);
-
   useEffect(() => {
     const updateHeight = () => {
       if (messagesWrapperRef.current) {
@@ -91,6 +86,7 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
   }, []);
 
   useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -104,6 +100,11 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
     }
   }, [isMobile, selectedConversation]);
 
+  const scrollToBottom = useCallback(() => {
+    if (listRef.current && currentConversation) {
+      listRef.current.scrollToItem(currentConversation.messages.length - 1);
+    }
+  }, [currentConversation]);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -214,11 +215,6 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
     return conversations.find(conv => conv.id === selectedConversation);
   }, [conversations, selectedConversation]);
 
-  const scrollToBottom = useCallback(() => {
-    if (listRef.current && currentConversation) {
-      listRef.current.scrollToItem(currentConversation.messages.length - 1);
-    }
-  }, [currentConversation]);
 
   useEffect(() => {
     scrollToBottom();
@@ -568,6 +564,7 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
                     itemCount={currentConversation.messages.length}
                     itemSize={80}
                     width="100%"
+                    outerRef={containerRef}
                     ref={listRef}
                     itemData={{ messages: currentConversation.messages, currentUserId: currentUser.id, formatTime }}
                     className="overflow-x-hidden"
