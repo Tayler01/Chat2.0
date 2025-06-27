@@ -8,3 +8,9 @@ export interface Message {
   avatar_url?: string | null;
   reactions?: Record<string, string[]>;
 }
+
+export interface User {
+  id: string;
+  name: string;
+  avatar_color: string;
+}

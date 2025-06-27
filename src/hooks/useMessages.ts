@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Message } from '../types/message';
 
@@ -12,48 +12,9 @@ export function useMessages(userId: string | null) {
   const [hasMore, setHasMore] = useState(true);
 
   const oldestTimestampRef = useRef<string | null>(null);
-  const latestTimestampRef = useRef<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const updatePresence = useCallback(async () => {
-    try {
-      await supabase.rpc('update_user_last_active');
-    } catch (err) {
-      console.error('Failed to update last_active', err);
-    }
-  }, []);
-
-  const fetchLatestMessages = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const { data, error } = await supabase
-        .from('messages')
-        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at, reactions')
-        .order('created_at', { ascending: false })
-        .limit(PAGE_SIZE);
-
-      if (error) throw error;
-
-      const sorted = [...(data || [])].reverse();
-      setMessages(sorted);
-
-      if (sorted.length > 0) {
-        oldestTimestampRef.current = sorted[0].created_at;
-        latestTimestampRef.current = sorted[sorted.length - 1].created_at;
-      } else {
-        latestTimestampRef.current = null;
-      }
-
-      setHasMore((data || []).length === PAGE_SIZE);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load messages');
-    } finally {
-      setLoading(false);
-    }
-  }, [updatePresence]);
-
-  const subscribeToMessages = useCallback(() => {
+  const subscribeToMessages = () => {
     if (!userId) return;
 
     channelRef.current?.unsubscribe();
@@ -91,12 +52,7 @@ export function useMessages(userId: string | null) {
       .subscribe();
 
     channelRef.current = channel;
-  }, [userId]);
-
-  const refresh = useCallback(() => {
-    subscribeToMessages();
-    fetchLatestMessages();
-  }, [subscribeToMessages, fetchLatestMessages]);
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -107,7 +63,7 @@ export function useMessages(userId: string | null) {
     return () => {
       channelRef.current?.unsubscribe();
     };
-  }, [userId, fetchLatestMessages, subscribeToMessages]);
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -129,44 +85,48 @@ export function useMessages(userId: string | null) {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [userId, refresh]);
+  }, [userId]);
 
-  const pollNewMessages = useCallback(async () => {
-    if (!latestTimestampRef.current) return;
-
+  const updatePresence = async () => {
     try {
+      await supabase.rpc('update_user_last_active');
+    } catch (err) {
+      console.error('Failed to update last_active', err);
+    }
+  };
+
+  const fetchLatestMessages = async () => {
+    try {
+      setLoading(true);
+
       const { data, error } = await supabase
         .from('messages')
-        .select(
-          'id, content, user_name, user_id, avatar_color, avatar_url, created_at, reactions'
-        )
-        .gt('created_at', latestTimestampRef.current)
-        .order('created_at', { ascending: true });
+        .select('id, content, user_name, user_id, avatar_color, avatar_url, created_at, reactions')
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        setMessages((prev) => [...prev, ...data]);
-        latestTimestampRef.current = data[data.length - 1].created_at;
+      const sorted = [...(data || [])].reverse();
+      setMessages(sorted);
+
+      if (sorted.length > 0) {
+        oldestTimestampRef.current = sorted[0].created_at;
       }
+
+      setHasMore((data || []).length === PAGE_SIZE);
+      await updatePresence();
     } catch (err) {
-      console.error('Failed to poll new messages', err);
+      setError(err instanceof Error ? err.message : 'Failed to load messages');
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  };
 
-  useEffect(() => {
-    if (!userId) return;
-
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        pollNewMessages();
-      }
-    }, 15000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [userId, pollNewMessages]);
+  const refresh = () => {
+    subscribeToMessages();
+    fetchLatestMessages();
+  };
 
   const fetchOlderMessages = async () => {
     if (loadingOlder || !oldestTimestampRef.current || !hasMore) return;
@@ -196,6 +156,7 @@ export function useMessages(userId: string | null) {
       }
 
       setHasMore((data || []).length === PAGE_SIZE);
+      await updatePresence();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load older messages');
     } finally {
@@ -221,7 +182,7 @@ export function useMessages(userId: string | null) {
 
       if (error) throw error;
 
-      await updatePresence();
+      await supabase.rpc('update_user_last_active');
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
@@ -229,10 +190,10 @@ export function useMessages(userId: string | null) {
     }
   };
 
+
   return {
     messages,
     loading,
-    loadingOlder,
     error,
     refresh,
     sendMessage,
@@ -240,3 +201,5 @@ export function useMessages(userId: string | null) {
     hasMore,
   };
 }
+
+

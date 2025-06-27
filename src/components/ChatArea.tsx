@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import React, { useEffect, useRef, useCallback } from 'react';
+import { MessageBubble } from './MessageBubble';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
+import { DateDivider } from './DateDivider';
 import { formatDateGroup } from '../utils/formatDateGroup';
 import { Message } from '../types/message';
-import { MessageRow } from './MessageRow';
 
 interface ChatAreaProps {
   messages: Message[];
@@ -14,7 +14,6 @@ interface ChatAreaProps {
   onRetry: () => void;
   fetchOlderMessages: () => void;
   hasMore: boolean;
-  loadingOlder?: boolean;
   onUserClick?: (userId: string) => void;
   activeUserIds: string[];
 }
@@ -27,18 +26,14 @@ export function ChatArea({
   onRetry,
   fetchOlderMessages,
   hasMore,
-  loadingOlder = false,
   onUserClick,
   activeUserIds,
 
 }: ChatAreaProps) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<List>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasAutoScrolled = useRef(false);
   const isFetchingRef = useRef(false);
-  const previousScrollHeightRef = useRef<number | null>(null);
 
   const latestMessageByUser = React.useMemo(() => {
     const map = new Map<string, string>();
@@ -48,87 +43,44 @@ export function ChatArea({
     return map;
   }, [messages]);
 
-  type VirtualItem =
-    | { type: 'date'; label: string }
-    | { type: 'message'; message: Message; showTimestamp: boolean; showActiveDot: boolean };
-
-  const virtualItems = React.useMemo(() => {
-    const items: VirtualItem[] = [];
-    let lastDateLabel: string | null = null;
-
-    messages.forEach((message, index) => {
-      const dateLabel = formatDateGroup(message.created_at);
-      const nextMessage = messages[index + 1];
-      const nextDateLabel = nextMessage ? formatDateGroup(nextMessage.created_at) : null;
-
-      if (dateLabel !== lastDateLabel) {
-        items.push({ type: 'date', label: dateLabel });
-        lastDateLabel = dateLabel;
-      }
-
-      items.push({
-        type: 'message',
-        message,
-        showActiveDot: latestMessageByUser.get(message.user_id) === message.id,
-        showTimestamp:
-          !nextMessage || nextMessage.user_id !== message.user_id || dateLabel !== nextDateLabel,
-      });
-    });
-
-    return items;
-  }, [messages, latestMessageByUser]);
-
-  const [listHeight, setListHeight] = useState(0);
-
-  useEffect(() => {
-    const updateHeight = () => {
-      if (wrapperRef.current) {
-        setListHeight(wrapperRef.current.clientHeight);
-      }
-    };
-    updateHeight();
-    window.addEventListener('resize', updateHeight);
-    return () => window.removeEventListener('resize', updateHeight);
-  }, []);
-
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || virtualItems.length === 0) return;
+    if (!container || messages.length === 0) return;
 
     const isNearBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight < 200;
 
     if (!hasAutoScrolled.current) {
-      listRef.current?.scrollToItem(virtualItems.length - 1);
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       hasAutoScrolled.current = true;
     } else if (isNearBottom) {
-      listRef.current?.scrollToItem(virtualItems.length - 1, 'end');
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [virtualItems.length]);
+
+  }, [messages]);
 
   const handleScroll = useCallback(() => {
-    const container = containerRef.current;
-    if (!container || !hasMore || isFetchingRef.current) return;
+  const container = containerRef.current;
+  if (!container || !hasMore || isFetchingRef.current) return;
 
-    if (container.scrollTop <= 20) {
-      previousScrollHeightRef.current = container.scrollHeight;
-      isFetchingRef.current = true;
+  // Allow a small threshold to improve touch scrolling experience
+  if (container.scrollTop <= 20) {
+    const previousHeight = container.scrollHeight;
+    isFetchingRef.current = true;
 
-      fetchOlderMessages();
-    }
+    fetchOlderMessages();
+    
+    // Use a timeout to restore scroll position after messages load
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        const newHeight = container.scrollHeight;
+        container.scrollTop = newHeight - previousHeight;
+
+        isFetchingRef.current = false;
+      });
+    }, 100);
+  }
   }, [fetchOlderMessages, hasMore]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    if (!loadingOlder && isFetchingRef.current && previousScrollHeightRef.current !== null) {
-      const newHeight = container.scrollHeight;
-      container.scrollTop = newHeight - previousScrollHeightRef.current;
-      isFetchingRef.current = false;
-      previousScrollHeightRef.current = null;
-    }
-  }, [loadingOlder, virtualItems.length]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -160,24 +112,55 @@ export function ChatArea({
   }
 
   return (
-    <div ref={wrapperRef} className="flex-1 overflow-hidden bg-gray-900 relative p-2 sm:p-4">
-      {listHeight > 0 && (
-        <List
-          height={listHeight}
-          itemCount={virtualItems.length}
-          itemSize={80}
-          width="100%"
-          outerRef={containerRef}
-          itemData={{ items: virtualItems, currentUserId, onUserClick, activeUserIds }}
-          ref={listRef}
-          onScroll={handleScroll}
-          className="overflow-x-hidden"
-        >
-          {MessageRow}
-        </List>
-      )}
-      <div ref={messagesEndRef} />
-    </div>
+    <>
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1 bg-gray-900 relative"
+      >
+        {(() => {
+          const items: JSX.Element[] = [];
+          let lastDateLabel: string | null = null;
+
+        messages.forEach((message, index) => {
+          const dateLabel = formatDateGroup(message.created_at);
+          const nextMessage = messages[index + 1];
+          const nextDateLabel = nextMessage
+            ? formatDateGroup(nextMessage.created_at)
+            : null;
+
+          if (dateLabel !== lastDateLabel) {
+            items.push(
+              <div key={`date-${dateLabel}`} className="my-4">
+                <DateDivider label={dateLabel} />
+              </div>
+            );
+            lastDateLabel = dateLabel;
+          }
+
+          items.push(
+            <MessageBubble
+              key={message.id}
+              message={message}
+              isOwnMessage={message.user_id === currentUserId}
+              currentUserId={currentUserId}
+              onUserClick={onUserClick}
+              activeUserIds={activeUserIds}
+              showActiveDot={latestMessageByUser.get(message.user_id) === message.id}
+              showTimestamp={
+                !nextMessage ||
+                nextMessage.user_id !== message.user_id ||
+                dateLabel !== nextDateLabel
+              }
+            />
+          );
+        });
+
+          return items;
+        })()}
+        <div ref={messagesEndRef} />
+      </div>
+      
+    </>
   );
 }
 

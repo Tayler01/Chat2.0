@@ -1,16 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
-import {
-  Search,
-  MessageSquare,
-  Send,
-  Users,
-  ArrowLeft,
-} from 'lucide-react';
+import { Search, MessageSquare, Send, X, Clock, Users, ArrowLeft } from 'lucide-react';
+import { Smile } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
 import { Avatar } from './Avatar';
-import { DMMessageRow, DMMessage } from './DMMessageRow';
 
 interface User {
   id: string;
@@ -18,6 +11,14 @@ interface User {
   avatar_url?: string;
   avatar_color: string;
   bio?: string;
+}
+
+interface DMMessage {
+  id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  reactions?: Record<string, string[]>;
 }
 
 interface DMConversation {
@@ -56,65 +57,30 @@ interface DMsPageProps {
   activeUserIds: string[];
 }
 
-export function DMsPage({ currentUser, unreadConversations = [], onConversationOpen, initialConversationId, onBackToGroupChat, activeUserIds }: DMsPageProps) {
+export function DMsPage({ currentUser, onUserClick, unreadConversations = [], onConversationOpen, initialConversationId, onBackToGroupChat, activeUserIds }: DMsPageProps) {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(initialConversationId);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [listHeight, setListHeight] = useState(0);
-  const messagesWrapperRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
-  
-  const listRef = useRef<List>(null);
-  const { show } = useToast();
-
-  const currentConversation = useMemo(() => {
-    return conversations.find(conv => conv.id === selectedConversation);
-  }, [conversations, selectedConversation]);
-
-  useEffect(() => {
-    const updateHeight = () => {
-      if (messagesWrapperRef.current) {
-        setListHeight(messagesWrapperRef.current.clientHeight);
-      }
-    };
-    updateHeight();
-    window.addEventListener('resize', updateHeight);
-    return () => window.removeEventListener('resize', updateHeight);
-  }, []);
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    if (isMobile && selectedConversation) {
-      setShowSidebar(false);
-    }
-  }, [isMobile, selectedConversation]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { showToast } = useToast();
 
   const scrollToBottom = useCallback(() => {
-    if (listRef.current && currentConversation) {
-      listRef.current.scrollToItem(currentConversation.messages.length - 1);
-    }
-  }, [currentConversation]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const loadConversations = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('dms')
-        .select('*')
+        .select(`
+          *,
+          messages:dm_messages(*)
+        `)
         .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
         .order('updated_at', { ascending: false });
 
@@ -124,11 +90,11 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
       setConversations(normalizedConversations);
     } catch (error) {
       console.error('Error loading conversations:', error);
-      show('Failed to load conversations');
+      showToast('Failed to load conversations', 'error');
     } finally {
       setLoading(false);
     }
-  }, [currentUser.id, show]);
+  }, [currentUser.id, showToast]);
 
   const searchUsers = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -149,18 +115,18 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
       setSearchResults(data || []);
     } catch (error) {
       console.error('Error searching users:', error);
-      show('Failed to search users');
+      showToast('Failed to search users', 'error');
     } finally {
       setIsSearching(false);
     }
-  }, [currentUser.id, show]);
+  }, [currentUser.id, showToast]);
 
   const startConversation = useCallback(async (otherUser: User) => {
     try {
-      const user1Id =
-        currentUser.id < otherUser.id ? currentUser.id : otherUser.id;
-      const user2Id =
-        currentUser.id < otherUser.id ? otherUser.id : currentUser.id;
+      const user1Id = currentUser.id < otherUser.id ? currentUser.id : otherUser.id;
+      const user2Id = currentUser.id < otherUser.id ? otherUser.id : currentUser.id;
+      const user1Username = currentUser.id < otherUser.id ? currentUser.username : otherUser.username;
+      const user2Username = currentUser.id < otherUser.id ? otherUser.username : currentUser.username;
 
       const { data: existingConv, error: checkError } = await supabase
         .from('dms')
@@ -177,22 +143,16 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
         setSelectedConversation(existingConv.id);
         setSearchQuery('');
         setSearchResults([]);
-        setShowSidebar(false);
         return;
       }
-
-      const user1Username =
-        currentUser.id < otherUser.id ? currentUser.username : otherUser.username;
-      const user2Username =
-        currentUser.id < otherUser.id ? otherUser.username : currentUser.username;
 
       const { data: newConv, error: insertError } = await supabase
         .from('dms')
         .insert({
           user1_id: user1Id,
           user2_id: user2Id,
-          user1_username: user1Username,
-          user2_username: user2Username,
+          user1_username,
+          user2_username
         })
         .select()
         .single();
@@ -208,22 +168,11 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
       setSelectedConversation(newConv.id);
       setSearchQuery('');
       setSearchResults([]);
-      setShowSidebar(false);
     } catch (error) {
       console.error('Error starting conversation:', error);
-      show('Failed to start conversation');
+      showToast('Failed to start conversation', 'error');
     }
-  }, [currentUser, show]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [conversations, selectedConversation, scrollToBottom]);
-
-  const getOtherUser = useCallback((conversation: DMConversation) => {
-    return conversation.user1_id === currentUser.id
-      ? { id: conversation.user2_id, username: conversation.user2_username }
-      : { id: conversation.user1_id, username: conversation.user1_username };
-  }, [currentUser.id]);
+  }, [currentUser, showToast]);
 
   const sendMessage = useCallback(async () => {
     if (!newMessage.trim() || !selectedConversation || sending) return;
@@ -257,11 +206,11 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
       setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error('Error sending message:', error);
-      show('Failed to send message');
+      showToast('Failed to send message', 'error');
     } finally {
       setSending(false);
     }
-  }, [newMessage, selectedConversation, currentUser.id, sending, show, scrollToBottom]);
+  }, [newMessage, selectedConversation, currentUser.id, sending, showToast, scrollToBottom]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -273,35 +222,6 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
-
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!selectedConversation) return;
-      const conv = conversations.find(c => c.id === selectedConversation);
-      if (!conv || conv.messages.length > 0) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('dm_messages')
-          .select('*')
-          .eq('conversation_id', selectedConversation)
-          .order('created_at');
-
-        if (error) throw error;
-
-        setConversations(prev =>
-          prev.map(c =>
-            c.id === selectedConversation ? { ...c, messages: data || [] } : c
-          )
-        );
-      } catch (err) {
-        console.error('Error loading messages:', err);
-        show('Failed to load messages');
-      }
-    };
-
-    fetchMessages();
-  }, [selectedConversation, conversations, show]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -317,6 +237,19 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
     }
   }, [initialConversationId]);
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversations, selectedConversation, scrollToBottom]);
+
+  const currentConversation = useMemo(() => {
+    return conversations.find(conv => conv.id === selectedConversation);
+  }, [conversations, selectedConversation]);
+
+  const getOtherUser = useCallback((conversation: DMConversation) => {
+    return conversation.user1_id === currentUser.id
+      ? { id: conversation.user2_id, username: conversation.user2_username }
+      : { id: conversation.user1_id, username: conversation.user1_username };
+  }, [currentUser.id]);
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -346,18 +279,8 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
 
   return (
     <div className="flex h-full overflow-hidden bg-gray-900">
-      {isMobile && showSidebar && (
-        <div
-          className="fixed inset-0 bg-black/50 z-10"
-          onClick={() => setShowSidebar(false)}
-        />
-      )}
       {/* Sidebar */}
-      <div
-        className={`w-80 bg-gray-800 border-r border-gray-700 flex flex-col transform transition-transform duration-300 ${
-          isMobile ? 'fixed inset-y-0 left-0 z-20' : ''
-        } ${isMobile && !showSidebar ? '-translate-x-full' : 'translate-x-0'}`}
-      >
+      <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-gray-700">
           <div className="flex items-center justify-between mb-4">
@@ -408,10 +331,10 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
                     >
                       <div className="relative">
                         <Avatar
-                          url={user.avatar_url}
-                          alt={user.username}
+                          username={user.username}
+                          avatarUrl={user.avatar_url}
                           color={user.avatar_color}
-                          className="w-8 h-8 rounded-full"
+                          size="sm"
                         />
                         {isUserActive(user.id) && (
                           <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full"></div>
@@ -458,7 +381,6 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
                     onClick={() => {
                       setSelectedConversation(conversation.id);
                       onConversationOpen?.(conversation.id, conversation.updated_at);
-                      setShowSidebar(false);
                     }}
                     className={`w-full flex items-center p-3 rounded-lg transition-colors mb-1 ${
                       selectedConversation === conversation.id
@@ -468,10 +390,9 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
                   >
                     <div className="relative">
                       <Avatar
-                        url={undefined}
-                        alt={otherUser.username}
+                        username={otherUser.username}
                         color="#3B82F6"
-                        className="w-8 h-8 rounded-full"
+                        size="sm"
                       />
                       {isUserActive(otherUser.id) && (
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full"></div>
@@ -518,20 +439,11 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
             {/* Chat Header */}
             <div className="p-4 border-b border-gray-700 bg-gray-800">
               <div className="flex items-center">
-                {isMobile && (
-                  <button
-                    onClick={() => setShowSidebar(true)}
-                    className="mr-2 p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
-                  >
-                    <Users className="w-5 h-5" />
-                  </button>
-                )}
                 <div className="relative">
                   <Avatar
-                    url={undefined}
-                    alt={getOtherUser(currentConversation).username}
+                    username={getOtherUser(currentConversation).username}
                     color="#3B82F6"
-                    className="w-8 h-8 rounded-full"
+                    size="sm"
                   />
                   {isUserActive(getOtherUser(currentConversation).id) && (
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full"></div>
@@ -549,7 +461,7 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
             </div>
 
             {/* Messages */}
-            <div ref={messagesWrapperRef} className="flex-1 overflow-hidden p-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {currentConversation.messages.length === 0 ? (
                 <div className="text-center py-8">
                   <MessageSquare className="w-12 h-12 text-gray-600 mx-auto mb-3" />
@@ -557,21 +469,27 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
                   <p className="text-gray-500 text-sm mt-1">Start the conversation!</p>
                 </div>
               ) : (
-                listHeight > 0 && (
-                  <List
-                    height={listHeight}
-                    itemCount={currentConversation.messages.length}
-                    itemSize={80}
-                    width="100%"
-                    outerRef={containerRef}
-                    ref={listRef}
-                    itemData={{ messages: currentConversation.messages, currentUserId: currentUser.id, formatTime }}
-                    className="overflow-x-hidden"
+                currentConversation.messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.sender_id === currentUser.id ? 'justify-end' : 'justify-start'}`}
                   >
-                    {DMMessageRow}
-                  </List>
-                )
+                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                      message.sender_id === currentUser.id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-700 text-white'
+                    }`}>
+                      <p className="text-sm">{message.content}</p>
+                      <p className={`text-xs mt-1 ${
+                        message.sender_id === currentUser.id ? 'text-blue-200' : 'text-gray-400'
+                      }`}>
+                        {formatTime(message.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                ))
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Message Input */}

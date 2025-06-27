@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Palette, Save, Upload, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ChatHeader } from './ChatHeader';
@@ -56,7 +56,11 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
 
-  const fetchUserProfile = useCallback(async () => {
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -84,11 +88,7 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
     } finally {
       setLoading(false);
     }
-  }, [user.id, user.username, user.avatar_color]);
-
-  useEffect(() => {
-    fetchUserProfile();
-  }, [fetchUserProfile]);
+  };
 
   const handleSave = async () => {
     if (!editData.username.trim()) {
@@ -156,14 +156,14 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/${type}_${Date.now()}.${fileExt}`;
     
-    const { error: uploadError } = await supabase.storage
+    const { error } = await supabase.storage
       .from('images')
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: false
       });
 
-    if (uploadError) throw uploadError;
+    if (error) throw error;
 
     const { data: { publicUrl } } = supabase.storage
       .from('images')

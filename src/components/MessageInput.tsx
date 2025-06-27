@@ -18,10 +18,7 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem('groupChatDraft', message);
-    }, 500);
-    return () => clearTimeout(timer);
+    localStorage.setItem('groupChatDraft', message);
   }, [message]);
 
   const handleSubmit = async (e: React.FormEvent) => {
