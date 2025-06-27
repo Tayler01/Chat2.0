@@ -255,7 +255,7 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
         <div className="flex justify-start px-4 sm:px-8 lg:px-16 py-4 sm:py-6 h-full">
           
           {/* Profile Card - Left side */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 flex flex-col relative overflow-hidden w-full max-w-md mx-auto sm:mx-0">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 flex flex-col relative overflow-hidden w-full max-w-md mx-auto sm:mx-0 h-[calc(100vh-8rem)]">
             {/* Banner */}
             <div 
               className="h-24 sm:h-32 bg-cover bg-center relative bg-gradient-to-r from-blue-600 to-purple-600"
@@ -269,7 +269,7 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
             </div>
 
             {/* Avatar & Info */}
-            <div className="px-4 sm:px-6 pt-0 pb-4 sm:pb-6 relative space-y-3 sm:space-y-4 flex-1">
+            <div className="px-4 sm:px-6 pt-0 pb-16 relative space-y-3 sm:space-y-4 flex-1 overflow-y-auto">
               <div className="flex items-end space-x-4">
                 <div className="-mt-8 sm:-mt-12 w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-gray-600 ring-4 ring-gray-800 flex-shrink-0">
                   <Avatar
@@ -308,10 +308,10 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
             </div>
 
             {/* Edit Profile Button */}
-            <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4">
+            <div className="absolute bottom-3 right-3">
               <button
                 onClick={() => setShowEditModal(true)}
-                className="px-3 py-2 sm:px-4 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow transition-colors"
+                className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow transition-colors"
               >
                 Edit Profile
               </button>
