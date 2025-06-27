@@ -58,18 +58,21 @@ interface DMsPageProps {
 
 export function DMsPage({ currentUser, unreadConversations = [], onConversationOpen, initialConversationId, onBackToGroupChat, activeUserIds }: DMsPageProps) {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(initialConversationId);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [sending, setSending] = useState(false);
+  const [listHeight, setListHeight] = useState(0);
   const messagesWrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   
   const listRef = useRef<List>(null);
+  const { show } = useToast();
 
   // Initialize mobile state
   useEffect(() => {
