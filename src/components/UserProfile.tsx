@@ -156,14 +156,14 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/${type}_${Date.now()}.${fileExt}`;
     
-    const { error } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('images')
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: false
       });
 
-    if (error) throw error;
+    if (uploadError) throw uploadError;
 
     const { data: { publicUrl } } = supabase.storage
       .from('images')

@@ -89,7 +89,6 @@ export function useAuth() {
       }
     });
 
-    return () => subscription.unsubscribe();
   }, [hasCheckedSession, fetchUserProfile]);
 
   useEffect(() => {

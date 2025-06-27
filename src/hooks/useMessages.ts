@@ -46,7 +46,6 @@ export function useMessages(userId: string | null) {
       }
 
       setHasMore((data || []).length === PAGE_SIZE);
-      await updatePresence();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load messages');
     } finally {
@@ -197,7 +196,6 @@ export function useMessages(userId: string | null) {
       }
 
       setHasMore((data || []).length === PAGE_SIZE);
-      await updatePresence();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load older messages');
     } finally {
@@ -223,7 +221,7 @@ export function useMessages(userId: string | null) {
 
       if (error) throw error;
 
-      await supabase.rpc('update_user_last_active');
+      await updatePresence();
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');

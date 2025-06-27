@@ -64,7 +64,6 @@ function MessageBubbleComponent({
         setShowPicker(false);
       } catch (error) {
         console.error('Error toggling reaction:', error);
-        // Show user-friendly error message
         show('Failed to add reaction. Please try again.');
       } finally {
         setIsReacting(false);

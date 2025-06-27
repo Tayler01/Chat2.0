@@ -1,5 +1,12 @@
 import React from 'react';
-import { DMMessage } from '../types/dm';
+
+export interface DMMessage {
+  id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  reactions?: Record<string, string[]>;
+}
 
 interface RowProps {
   index: number;
@@ -9,14 +16,6 @@ interface RowProps {
     currentUserId: string;
     formatTime: (timestamp: string) => string;
   };
-}
-
-export interface DMMessage {
-  id: string;
-  sender_id: string;
-  content: string;
-  created_at: string;
-  reactions?: Record<string, string[]>;
 }
 
 export function DMMessageRow({ index, style, data }: RowProps) {

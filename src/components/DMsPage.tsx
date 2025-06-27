@@ -10,7 +10,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
 import { Avatar } from './Avatar';
-import { DMMessageRow } from './DMMessageRow';
+import { DMMessageRow, DMMessage } from './DMMessageRow';
 
 interface User {
   id: string;
@@ -18,14 +18,6 @@ interface User {
   avatar_url?: string;
   avatar_color: string;
   bio?: string;
-}
-
-interface DMMessage {
-  id: string;
-  sender_id: string;
-  content: string;
-  created_at: string;
-  reactions?: Record<string, string[]>;
 }
 
 interface DMConversation {
@@ -71,15 +63,19 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const listRef = useRef<List>(null);
   const messagesWrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [listHeight, setListHeight] = useState(0);
-  const { show } = useToast();
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
+  
+  const listRef = useRef<List>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Initialize mobile state
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+  }, []);
 
   useEffect(() => {
     const updateHeight = () => {
@@ -570,7 +566,6 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
                     itemCount={currentConversation.messages.length}
                     itemSize={80}
                     width="100%"
-                    outerRef={containerRef}
                     ref={listRef}
                     itemData={{ messages: currentConversation.messages, currentUserId: currentUser.id, formatTime }}
                     className="overflow-x-hidden"
