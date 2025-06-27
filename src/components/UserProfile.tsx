@@ -230,7 +230,7 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 relative overflow-hidden">
+    <div className="min-h-screen bg-gray-900 relative">
       {/* Same header as main page */}
       <ChatHeader
         userName={user.username}
@@ -251,11 +251,11 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
       </div>
 
       {/* Main content with grid layout */}
-      <div className="h-screen overflow-y-auto">
-        <div className="flex justify-center px-4 sm:px-8 lg:px-16 py-4 sm:py-6 min-h-full">
+      <div className="h-screen overflow-hidden">
+        <div className="flex justify-start px-4 sm:px-8 lg:px-16 py-4 sm:py-6 h-full">
           
           {/* Profile Card - Left side */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 flex flex-col relative overflow-hidden w-full max-w-md mx-auto my-auto">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 flex flex-col relative overflow-hidden w-full max-w-md mx-auto sm:mx-0">
             {/* Banner */}
             <div 
               className="h-24 sm:h-32 bg-cover bg-center relative bg-gradient-to-r from-blue-600 to-purple-600"
@@ -322,8 +322,8 @@ export function UserProfile({ user, onClose, onUserUpdate, currentPage, onPageCh
 
       {/* Edit Profile Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4 my-8">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-700">
               <h2 className="text-lg sm:text-xl font-bold text-white">Edit Profile</h2>
