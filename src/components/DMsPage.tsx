@@ -70,7 +70,6 @@ export function DMsPage({ currentUser, unreadConversations = [], onConversationO
   const [showSidebar, setShowSidebar] = useState(true);
   
   const listRef = useRef<List>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Initialize mobile state
   useEffect(() => {
