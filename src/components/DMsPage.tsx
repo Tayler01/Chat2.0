@@ -79,7 +79,13 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
         .from('dms')
         .select(`
           *,
-          messages:dm_messages(*)
+          messages:dm_messages(
+            id,
+            sender_id,
+            content,
+            created_at,
+            reactions
+          )
         `)
         .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
         .order('updated_at', { ascending: false });
@@ -330,12 +336,20 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                       className="w-full flex items-center p-2 rounded-lg hover:bg-gray-700 transition-colors text-left"
                     >
                       <div className="relative">
-                        <Avatar
-                          username={user.username}
-                          avatarUrl={user.avatar_url}
-                          color={user.avatar_color}
-                          size="sm"
-                        />
+                        <div 
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium"
+                          style={{ backgroundColor: user.avatar_color }}
+                        >
+                          {user.avatar_url ? (
+                            <img 
+                              src={user.avatar_url} 
+                              alt={user.username}
+                              className="w-full h-full rounded-full object-cover"
+                            />
+                          ) : (
+                            user.username.charAt(0).toUpperCase()
+                          )}
+                        </div>
                         {isUserActive(user.id) && (
                           <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full"></div>
                         )}
@@ -389,11 +403,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
                     }`}
                   >
                     <div className="relative">
-                      <Avatar
-                        username={otherUser.username}
-                        color="#3B82F6"
-                        size="sm"
-                      />
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium"
+                        style={{ backgroundColor: '#3B82F6' }}
+                      >
+                        {otherUser.username.charAt(0).toUpperCase()}
+                      </div>
                       {isUserActive(otherUser.id) && (
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full"></div>
                       )}
@@ -440,11 +455,12 @@ export function DMsPage({ currentUser, onUserClick, unreadConversations = [], on
             <div className="p-4 border-b border-gray-700 bg-gray-800">
               <div className="flex items-center">
                 <div className="relative">
-                  <Avatar
-                    username={getOtherUser(currentConversation).username}
-                    color="#3B82F6"
-                    size="sm"
-                  />
+                  <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium"
+                    style={{ backgroundColor: '#3B82F6' }}
+                  >
+                    {getOtherUser(currentConversation).username.charAt(0).toUpperCase()}
+                  </div>
                   {isUserActive(getOtherUser(currentConversation).id) && (
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full"></div>
                   )}
